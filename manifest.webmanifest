@@ -1,0 +1,26 @@
+{
+  "id": "./",
+  "name": "El Costeño Caja",
+  "short_name": "El Costeño",
+  "description": "Caja registradora para tacos y bebidas de El Costeño, con tickets de 58 mm.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#153e32",
+  "theme_color": "#153e32",
+  "lang": "es-MX",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
