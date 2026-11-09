@@ -153,7 +153,12 @@ public class MainActivity extends Activity {
       if(adapter==null) throw new Exception("Bluetooth no disponible");
       BluetoothDevice device=adapter.getRemoteDevice(mac);
       socket=device.createRfcommSocketToServiceRecord(SPP);
-      adapter.cancelDiscovery();
+      // Android 12+ requires BLUETOOTH_SCAN for cancelDiscovery().
+      // This app connects to an already paired printer, so discovery cancellation
+      // is unnecessary and must not prevent printing.
+      if (Build.VERSION.SDK_INT < 31) {
+        try { adapter.cancelDiscovery(); } catch (SecurityException ignored) {}
+      }
       socket.connect();
       OutputStream out=socket.getOutputStream();
       out.write(new byte[]{27,64,27,97,0}); // reset, align left
