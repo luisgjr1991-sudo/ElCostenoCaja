@@ -73,12 +73,13 @@ public class MainActivity extends Activity {
   public class PrinterBridge {
     @JavascriptInterface public void downloadCutPdf(String json) { ui.post(() -> saveCutPdf(json)); }
     @JavascriptInterface public void choosePrinter() { ui.post(() -> selectPrinter()); }
-    @JavascriptInterface public void printTicket(String content) {
+    @JavascriptInterface public void printTicket(String content) { printTicketWithLogo(content, ""); }
+    @JavascriptInterface public void printTicketWithLogo(String content, String logoData) {
       ui.post(() -> {
         if (!permission()) { toast("Autoriza Bluetooth y vuelve a pulsar Imprimir."); return; }
         String mac = getPreferences(0).getString(PREF, "");
         if (mac.isEmpty()) { selectPrinter(); toast("Selecciona la impresora y vuelve a pulsar Imprimir."); return; }
-        new Thread(() -> send(mac, content)).start();
+        new Thread(() -> send(mac, content, logoData)).start();
       });
     }
   }
@@ -146,7 +147,31 @@ public class MainActivity extends Activity {
       startActivity(Intent.createChooser(share,"Enviar corte a la contadora"));
     } catch(Exception e){toast("Error al generar PDF: "+e.getMessage());}
   }
-  private void send(String mac, String content) {
+
+  private void printLogo(OutputStream out,String data) throws Exception {
+    int comma=data.indexOf(',');
+    if(comma<0) return;
+    byte[] raw=android.util.Base64.decode(data.substring(comma+1),android.util.Base64.DEFAULT);
+    Bitmap original=BitmapFactory.decodeByteArray(raw,0,raw.length);
+    if(original==null) return;
+    int width=384;
+    int height=Math.max(1,Math.min(512,Math.round(original.getHeight()*(width/(float)original.getWidth()))));
+    Bitmap bitmap=Bitmap.createScaledBitmap(original,width,height,true);
+    int bytesPerRow=width/8;
+    byte[] row=new byte[bytesPerRow*height];
+    for(int y=0;y<height;y++)for(int x=0;x<width;x++){
+      int pixel=bitmap.getPixel(x,y);
+      int alpha=Color.alpha(pixel);
+      int luminance=(Color.red(pixel)*299+Color.green(pixel)*587+Color.blue(pixel)*114)/1000;
+      if(alpha>100 && luminance<165)row[y*bytesPerRow+x/8]|=(byte)(0x80>>(x%8));
+    }
+    out.write(new byte[]{27,97,1});
+    out.write(new byte[]{29,118,48,0,(byte)(bytesPerRow&255),(byte)(bytesPerRow>>8),(byte)(height&255),(byte)(height>>8)});
+    out.write(row);out.write(new byte[]{10,27,97,0});
+    bitmap.recycle();
+    if(bitmap!=original)original.recycle();
+  }
+  private void send(String mac, String content, String logoData) {
     BluetoothSocket socket=null;
     try {
       BluetoothAdapter adapter=BluetoothAdapter.getDefaultAdapter();
@@ -162,6 +187,11 @@ public class MainActivity extends Activity {
       socket.connect();
       OutputStream out=socket.getOutputStream();
       out.write(new byte[]{27,64,27,97,0}); // reset, align left
+      if(logoData!=null && logoData.startsWith("data:image/")) {
+        try { printLogo(out,logoData); } catch(Exception logoError) {
+          toast("No se pudo imprimir el logo: "+logoError.getMessage());
+        }
+      }
       // CP850 is commonly supported by 58mm ESC/POS devices; accents transliterated for portability.
       String safe=java.text.Normalizer.normalize(content,java.text.Normalizer.Form.NFD)
         .replaceAll("\\p{M}+","").replace("ñ","n").replace("Ñ","N");
