@@ -7,6 +7,8 @@ import android.bluetooth.*;
 import android.content.*;
 import android.content.pm.PackageManager;
 import android.webkit.*;
+import android.net.Uri;
+import android.webkit.ValueCallback;
 import android.widget.*;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
@@ -19,6 +21,8 @@ import org.json.*;
 
 public class MainActivity extends Activity {
   private WebView web;
+  private ValueCallback<Uri[]> fileChooserCallback;
+  private static final int FILE_PICKER_REQUEST=202;
   private final Handler ui = new Handler(Looper.getMainLooper());
   private static final String PREF = "printer";
   private static final int BT_PERMISSION = 101;
@@ -30,6 +34,23 @@ public class MainActivity extends Activity {
     web.getSettings().setJavaScriptEnabled(true);
     web.getSettings().setDomStorageEnabled(true);
     web.addJavascriptInterface(new PrinterBridge(), "AndroidPrinter");
+    web.setWebChromeClient(new WebChromeClient() {
+      @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+        if (fileChooserCallback != null) fileChooserCallback.onReceiveValue(null);
+        fileChooserCallback = callback;
+        try {
+          Intent intent = params.createIntent();
+          intent.addCategory(Intent.CATEGORY_OPENABLE);
+          startActivityForResult(intent, FILE_PICKER_REQUEST);
+          return true;
+        } catch (Exception e) {
+          fileChooserCallback = null;
+          callback.onReceiveValue(null);
+          toast("No se pudo abrir la galeria: "+e.getMessage());
+          return true;
+        }
+      }
+    });
     web.setWebViewClient(new WebViewClient() {
       @Override public void onPageFinished(WebView v, String url) { status("Impresora: " + getPreferences(0).getString(PREF, "sin seleccionar")); }
     });
@@ -153,6 +174,14 @@ public class MainActivity extends Activity {
       toast("Ticket enviado a la impresora.");
     } catch(Exception e) {toast("No se pudo imprimir: "+e.getMessage());}
     finally {if(socket!=null)try{socket.close();}catch(Exception ignored){}}
+  }
+  @Override protected void onActivityResult(int requestCode,int resultCode,Intent data) {
+    super.onActivityResult(requestCode,resultCode,data);
+    if(requestCode==FILE_PICKER_REQUEST && fileChooserCallback!=null) {
+      Uri[] result=WebChromeClient.FileChooserParams.parseResult(resultCode,data);
+      fileChooserCallback.onReceiveValue(result);
+      fileChooserCallback=null;
+    }
   }
   @Override public void onBackPressed() { if(web.canGoBack())web.goBack();else super.onBackPressed(); }
 }
