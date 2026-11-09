@@ -6,6 +6,9 @@ import android.os.*;
 import android.bluetooth.*;
 import android.content.*;
 import android.content.pm.PackageManager;
+import android.content.pm.ShortcutManager;
+import android.content.pm.ShortcutInfo;
+import android.graphics.drawable.Icon;
 import android.webkit.*;
 import android.net.Uri;
 import android.webkit.ValueCallback;
@@ -73,6 +76,7 @@ public class MainActivity extends Activity {
   public class PrinterBridge {
     @JavascriptInterface public void downloadCutPdf(String json) { ui.post(() -> saveCutPdf(json)); }
     @JavascriptInterface public void choosePrinter() { ui.post(() -> selectPrinter()); }
+    @JavascriptInterface public void createShortcut(String data) { ui.post(() -> pinShortcut(data)); }
     @JavascriptInterface public void printTicket(String content) { printTicketWithLogo(content, ""); }
     @JavascriptInterface public void printTicketWithLogo(String content, String logoData) {
       ui.post(() -> {
@@ -82,6 +86,38 @@ public class MainActivity extends Activity {
         new Thread(() -> send(mac, content, logoData)).start();
       });
     }
+  }
+
+  private void pinShortcut(String data) {
+    try {
+      ShortcutManager manager=getSystemService(ShortcutManager.class);
+      if(manager==null || !manager.isRequestPinShortcutSupported()){
+        toast("Tu pantalla de inicio no permite crear accesos directos desde la app.");
+        return;
+      }
+      int comma=data.indexOf(',');
+      if(comma<0)throw new IllegalArgumentException("Imagen no valida");
+      byte[] raw=android.util.Base64.decode(data.substring(comma+1),android.util.Base64.DEFAULT);
+      Bitmap source=BitmapFactory.decodeByteArray(raw,0,raw.length);
+      if(source==null)throw new IllegalArgumentException("No se pudo abrir la imagen");
+      int size=192;
+      Bitmap icon=Bitmap.createBitmap(size,size,Bitmap.Config.ARGB_8888);
+      Canvas canvas=new Canvas(icon);
+      Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
+      float scale=Math.min((size*0.9f)/source.getWidth(),(size*0.9f)/source.getHeight());
+      float w=source.getWidth()*scale,h=source.getHeight()*scale;
+      canvas.drawBitmap(source,null,new RectF((size-w)/2,(size-h)/2,(size+w)/2,(size+h)/2),paint);
+      Intent launch=new Intent(this,MainActivity.class).setAction(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
+      ShortcutInfo shortcut=new ShortcutInfo.Builder(this,"costeno-custom-"+System.currentTimeMillis())
+        .setShortLabel("El Costeño Caja")
+        .setLongLabel("El Costeño Caja")
+        .setIcon(Icon.createWithBitmap(icon))
+        .setIntent(launch)
+        .build();
+      boolean requested=manager.requestPinShortcut(shortcut,null);
+      if(!requested)toast("No se pudo solicitar el acceso directo.");
+      source.recycle();
+    } catch(Exception e) {toast("Error al crear icono: "+e.getMessage());}
   }
   private void selectPrinter() {
     if (!permission()) return;
