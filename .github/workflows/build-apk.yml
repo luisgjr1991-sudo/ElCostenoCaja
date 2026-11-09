@@ -18,7 +18,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
+      - name: Usar Android SDK preinstalado
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          test -d "$ANDROID_HOME/platforms" || exit 1
       - name: Preparar web de caja
         run: |
           mkdir -p app/src/main/assets
