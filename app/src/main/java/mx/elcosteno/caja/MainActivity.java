@@ -11,6 +11,11 @@ import android.widget.*;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.*;
+import android.graphics.*;
+import android.graphics.pdf.PdfDocument;
+import android.os.Environment;
+import java.io.*;
+import org.json.*;
 
 public class MainActivity extends Activity {
   private WebView web;
@@ -45,6 +50,7 @@ public class MainActivity extends Activity {
   private void toast(String s) { ui.post(() -> Toast.makeText(this, s, Toast.LENGTH_LONG).show()); }
 
   public class PrinterBridge {
+    @JavascriptInterface public void downloadCutPdf(String json) { ui.post(() -> saveCutPdf(json)); }
     @JavascriptInterface public void choosePrinter() { ui.post(() -> selectPrinter()); }
     @JavascriptInterface public void printTicket(String content) {
       ui.post(() -> {
@@ -71,6 +77,53 @@ public class MainActivity extends Activity {
       getPreferences(0).edit().putString(PREF,mac).apply();
       status("Impresora: "+labels[which]);
     }).setNegativeButton("Cancelar",null).show();
+  }
+  private void saveCutPdf(String json) {
+    try {
+      JSONObject c=new JSONObject(json);
+      String stamp=new java.text.SimpleDateFormat("yyyyMMdd-HHmmss",Locale.US).format(new Date());
+      String name="ElCosteno-Corte-"+stamp+".pdf";
+      PdfDocument pdf=new PdfDocument();
+      PdfDocument.PageInfo info=new PdfDocument.PageInfo.Builder(595,842,1).create();
+      PdfDocument.Page page=pdf.startPage(info);
+      Canvas canvas=page.getCanvas();Paint p=new Paint(3);p.setColor(Color.BLACK);p.setTextSize(13);
+      int y=65;
+      p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setTextSize(21);
+      canvas.drawText("EL COSTENO - CORTE DE CAJA",40,y,p);y+=38;
+      p.setTypeface(Typeface.DEFAULT);p.setTextSize(12);
+      canvas.drawText("Periodo: "+c.optString("label"),40,y,p);y+=23;
+      canvas.drawText("Generado: "+new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm",new Locale("es","MX")).format(new Date()),40,y,p);y+=28;
+      canvas.drawText("Numero de ventas: "+c.optInt("count"),40,y,p);y+=25;
+      canvas.drawText(String.format(Locale.US,"Subtotal: $%.2f",c.optDouble("subtotal")),40,y,p);y+=22;
+      canvas.drawText(String.format(Locale.US,"IVA registrado: $%.2f",c.optDouble("tax")),40,y,p);y+=22;
+      p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setTextSize(16);
+      canvas.drawText(String.format(Locale.US,"TOTAL: $%.2f",c.optDouble("amount")),40,y,p);y+=40;
+      p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setTextSize(13);
+      canvas.drawText("Desglose por producto",40,y,p);y+=25;
+      p.setTypeface(Typeface.DEFAULT);p.setTextSize(11);
+      JSONArray lines=c.optJSONArray("lines");
+      if(lines!=null)for(int i=0;i<lines.length();i++){
+        if(y>790){canvas.drawText("Continua en reporte CSV si hay mas productos",40,y,p);break;}
+        JSONObject x=lines.getJSONObject(i);
+        String product=x.optString("name").replaceAll("[\\r\\n]"," ");
+        if(product.length()>42)product=product.substring(0,42);
+        canvas.drawText(product+"  x"+x.optInt("qty"),40,y,p);
+        canvas.drawText(String.format(Locale.US,"$%.2f",x.optDouble("amount")),460,y,p);y+=21;
+      }
+      pdf.finishPage(page);
+      android.content.ContentValues values=new android.content.ContentValues();
+      values.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME,name);
+      values.put(android.provider.MediaStore.MediaColumns.MIME_TYPE,"application/pdf");
+      values.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/ElCosteno");
+      android.net.Uri uri=getContentResolver().insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
+      if(uri==null)throw new IOException("No se pudo crear archivo");
+      try(OutputStream out=getContentResolver().openOutputStream(uri)){if(out==null)throw new IOException("No se pudo abrir archivo");pdf.writeTo(out);}
+      pdf.close();
+      toast("PDF guardado en Descargas/ElCosteno");
+      Intent share=new Intent(Intent.ACTION_SEND);
+      share.setType("application/pdf");share.putExtra(Intent.EXTRA_STREAM,uri);share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+      startActivity(Intent.createChooser(share,"Enviar corte a la contadora"));
+    } catch(Exception e){toast("Error al generar PDF: "+e.getMessage());}
   }
   private void send(String mac, String content) {
     BluetoothSocket socket=null;
