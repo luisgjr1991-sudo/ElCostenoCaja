@@ -154,8 +154,8 @@ public class MainActivity extends Activity {
     byte[] raw=android.util.Base64.decode(data.substring(comma+1),android.util.Base64.DEFAULT);
     Bitmap original=BitmapFactory.decodeByteArray(raw,0,raw.length);
     if(original==null) return;
-    int width=384;
-    int height=Math.max(1,Math.min(512,Math.round(original.getHeight()*(width/(float)original.getWidth()))));
+    int width=320;
+    int height=Math.max(1,Math.min(180,Math.round(original.getHeight()*(width/(float)original.getWidth()))));
     Bitmap bitmap=Bitmap.createScaledBitmap(original,width,height,true);
     int bytesPerRow=width/8;
     byte[] row=new byte[bytesPerRow*height];
@@ -167,7 +167,7 @@ public class MainActivity extends Activity {
     }
     out.write(new byte[]{27,97,1});
     out.write(new byte[]{29,118,48,0,(byte)(bytesPerRow&255),(byte)(bytesPerRow>>8),(byte)(height&255),(byte)(height>>8)});
-    out.write(row);out.write(new byte[]{10,27,97,0});
+    out.write(row);out.write(new byte[]{27,97,0});
     bitmap.recycle();
     if(bitmap!=original)original.recycle();
   }
@@ -204,7 +204,7 @@ public class MainActivity extends Activity {
         }
         out.write((wrap.toString()+"\n").getBytes(Charset.forName("US-ASCII")));
       }
-      out.write(new byte[]{10,10,10});
+      out.write(new byte[]{10});
       out.flush();
       toast("Ticket enviado a la impresora.");
     } catch(Exception e) {toast("No se pudo imprimir: "+e.getMessage());}
