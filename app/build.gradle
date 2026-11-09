@@ -1,0 +1,3 @@
+plugins { id 'com.android.application' }
+android { namespace 'mx.elcosteno.caja'; compileSdk 35
+ defaultConfig { applicationId 'mx.elcosteno.caja'; minSdk 26; targetSdk 32; versionCode 1; versionName '1.0' } }
