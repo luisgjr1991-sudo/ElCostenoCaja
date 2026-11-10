@@ -1,0 +1,35 @@
+name: Compilar APK El Costeño
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'index.html'
+      - 'icon-*.png'
+      - 'manifest.webmanifest'
+      - 'settings.gradle'
+      - 'build.gradle'
+      - 'gradle.properties'
+      - '.github/workflows/apk.yml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Preparar archivos web
+        run: |
+          mkdir -p app/src/main/assets
+          cp index.html manifest.webmanifest app/src/main/assets/
+          cp icon-*.png app/src/main/assets/
+      - name: Compilar APK
+        run: gradle assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ElCostenoCaja-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
