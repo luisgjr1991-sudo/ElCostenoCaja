@@ -55,6 +55,13 @@ public class MainActivity extends Activity {
       }
     });
     web.setWebViewClient(new WebViewClient() {
+      @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+        Uri uri=request.getUrl();String scheme=uri.getScheme();
+        if("https".equals(scheme)||"http".equals(scheme)){
+          try{startActivity(new Intent(Intent.ACTION_VIEW,uri));}catch(Exception e){toast("No se pudo abrir WhatsApp");}return true;
+        }
+        return false;
+      }
       @Override public void onPageFinished(WebView v, String url) { status("Impresora: " + getPreferences(0).getString(PREF, "sin seleccionar")); }
     });
     setContentView(web);
@@ -137,37 +144,72 @@ public class MainActivity extends Activity {
     }).setNegativeButton("Cancelar",null).show();
   }
   private void saveCutPdf(String json) {
+    PdfDocument pdf=new PdfDocument();
     try {
       JSONObject c=new JSONObject(json);
       String stamp=new java.text.SimpleDateFormat("yyyyMMdd-HHmmss",Locale.US).format(new Date());
       String name="ElCosteno-Corte-"+stamp+".pdf";
-      PdfDocument pdf=new PdfDocument();
-      PdfDocument.PageInfo info=new PdfDocument.PageInfo.Builder(595,842,1).create();
-      PdfDocument.Page page=pdf.startPage(info);
-      Canvas canvas=page.getCanvas();Paint p=new Paint(3);p.setColor(Color.BLACK);p.setTextSize(13);
-      int y=65;
-      p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setTextSize(21);
-      canvas.drawText("EL COSTENO - CORTE DE CAJA",40,y,p);y+=38;
-      p.setTypeface(Typeface.DEFAULT);p.setTextSize(12);
-      canvas.drawText("Periodo: "+c.optString("label"),40,y,p);y+=23;
-      canvas.drawText("Generado: "+new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm",new Locale("es","MX")).format(new Date()),40,y,p);y+=28;
-      canvas.drawText("Numero de ventas: "+c.optInt("count"),40,y,p);y+=25;
-      canvas.drawText(String.format(Locale.US,"Subtotal: $%.2f",c.optDouble("subtotal")),40,y,p);y+=22;
-      canvas.drawText(String.format(Locale.US,"IVA registrado: $%.2f",c.optDouble("tax")),40,y,p);y+=22;
-      p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setTextSize(16);
-      canvas.drawText(String.format(Locale.US,"TOTAL: $%.2f",c.optDouble("amount")),40,y,p);y+=40;
-      p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setTextSize(13);
-      canvas.drawText("Desglose por producto",40,y,p);y+=25;
-      p.setTypeface(Typeface.DEFAULT);p.setTextSize(11);
-      JSONArray lines=c.optJSONArray("lines");
-      if(lines!=null)for(int i=0;i<lines.length();i++){
-        if(y>790){canvas.drawText("Continua en reporte CSV si hay mas productos",40,y,p);break;}
-        JSONObject x=lines.getJSONObject(i);
-        String product=x.optString("name").replaceAll("[\\r\\n]"," ");
-        if(product.length()>42)product=product.substring(0,42);
-        canvas.drawText(product+"  x"+x.optInt("qty"),40,y,p);
-        canvas.drawText(String.format(Locale.US,"$%.2f",x.optDouble("amount")),460,y,p);y+=21;
+      Paint p=new Paint(3);p.setColor(Color.BLACK);
+      PdfDocument.Page page=null;Canvas canvas=null;int y=0;int pageNo=0;
+      JSONArray sales=c.optJSONArray("sales");
+      java.util.TreeMap<String,java.util.ArrayList<JSONObject>> byDay=new java.util.TreeMap<>();
+      if(sales!=null)for(int i=0;i<sales.length();i++){
+        JSONObject sale=sales.getJSONObject(i);
+        String date=sale.optString("date");
+        String key=date.length()>=10?date.substring(0,10):"Sin fecha";
+        try { Date d=new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss",Locale.US).parse(date);
+          if(d!=null)key=new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.US).format(d);
+        }catch(Exception ignored){}
+        if(!byDay.containsKey(key))byDay.put(key,new java.util.ArrayList<>());
+        byDay.get(key).add(sale);
       }
+      page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,++pageNo).create());
+      canvas=page.getCanvas();y=38;p.setTypeface(Typeface.DEFAULT_BOLD);p.setTextSize(17);
+      canvas.drawText("EL COSTENO | REPORTE DE VENTAS",32,y,p);y+=23;
+      p.setTypeface(Typeface.DEFAULT);p.setTextSize(10);
+      canvas.drawText("Periodo: "+c.optString("label")+"  |  Ventas: "+c.optInt("count"),32,y,p);y+=17;
+      canvas.drawText("Generado: "+new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm",new Locale("es","MX")).format(new Date()),32,y,p);y+=19;
+      canvas.drawText(String.format(Locale.US,"Subtotal $%.2f   IVA $%.2f   Ret. ISR $%.2f   TOTAL $%.2f",c.optDouble("subtotal"),c.optDouble("tax"),c.optDouble("retention"),c.optDouble("amount")),32,y,p);y+=22;
+      for(java.util.Map.Entry<String,java.util.ArrayList<JSONObject>> entry:byDay.entrySet()){
+        if(y>755){pdf.finishPage(page);page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,++pageNo).create());canvas=page.getCanvas();y=40;}
+        double dayTotal=0;for(JSONObject sale:entry.getValue())dayTotal+=sale.optDouble("amount");
+        p.setTypeface(Typeface.DEFAULT_BOLD);p.setTextSize(11);
+        canvas.drawText("FECHA: "+entry.getKey()+"  |  "+entry.getValue().size()+" ventas  |  Total: "+String.format(Locale.US,"$%.2f",dayTotal),32,y,p);y+=16;
+        p.setTypeface(Typeface.DEFAULT);p.setTextSize(9);
+        for(JSONObject sale:entry.getValue()){
+          if(y>770){pdf.finishPage(page);page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,++pageNo).create());canvas=page.getCanvas();y=40;}
+          String folio=String.format(Locale.US,"%06d",sale.optInt("folio"));
+          canvas.drawText("Folio "+folio+(sale.optBoolean("invoice")?" [FACTURA]":""),42,y,p);
+          canvas.drawText(String.format(Locale.US,"$%.2f",sale.optDouble("amount")),480,y,p);y+=13;
+          JSONArray items=sale.optJSONArray("items");
+          if(items!=null)for(int j=0;j<items.length();j++){
+            if(y>770){pdf.finishPage(page);page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,++pageNo).create());canvas=page.getCanvas();y=40;}
+            JSONObject item=items.getJSONObject(j);
+            String product=item.optString("name").replaceAll("[\\r\\n]"," ");
+            if(product.length()>48)product=product.substring(0,48);
+            canvas.drawText("  "+item.optInt("qty")+" x "+product,52,y,p);
+            canvas.drawText(String.format(Locale.US,"$%.2f",item.optInt("qty")*item.optDouble("price")),480,y,p);y+=12;
+          }
+          if(sale.optBoolean("invoice")){
+            canvas.drawText(String.format(Locale.US,"Subtotal %.2f  |  IVA %.2f  |  Ret. ISR %.2f",sale.optDouble("subtotal"),sale.optDouble("tax"),sale.optDouble("retention")),52,y,p);y+=13;
+          }
+        }
+        y+=9;
+      }
+      if(y>710){pdf.finishPage(page);page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,++pageNo).create());canvas=page.getCanvas();y=40;}
+      p.setTypeface(Typeface.DEFAULT_BOLD);p.setTextSize(12);canvas.drawText("FACTURAS DEL PERIODO",32,y,p);y+=18;
+      p.setTypeface(Typeface.DEFAULT);p.setTextSize(9);
+      double invoiced=0,retained=0;int invoiceCount=0;
+      if(sales!=null)for(int i=0;i<sales.length();i++){
+        JSONObject sale=sales.getJSONObject(i);if(!sale.optBoolean("invoice"))continue;
+        if(y>770){pdf.finishPage(page);page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,++pageNo).create());canvas=page.getCanvas();y=40;}
+        invoiceCount++;invoiced+=sale.optDouble("amount");retained+=sale.optDouble("retention");
+        String date=sale.optString("date");if(date.length()>10)date=date.substring(0,10);
+        canvas.drawText(date+"  Folio "+sale.optInt("folio")+"  Sub. "+String.format(Locale.US,"%.2f",sale.optDouble("subtotal"))+"  IVA "+String.format(Locale.US,"%.2f",sale.optDouble("tax"))+"  ISR "+String.format(Locale.US,"%.2f",sale.optDouble("retention")),38,y,p);
+        canvas.drawText(String.format(Locale.US,"$%.2f",sale.optDouble("amount")),480,y,p);y+=15;
+      }
+      if(y>775){pdf.finishPage(page);page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,++pageNo).create());canvas=page.getCanvas();y=40;}
+      p.setTypeface(Typeface.DEFAULT_BOLD);canvas.drawText(String.format(Locale.US,"Facturas: %d  |  Total facturado: $%.2f  |  ISR retenido: $%.2f",invoiceCount,invoiced,retained),32,y,p);
       pdf.finishPage(page);
       android.content.ContentValues values=new android.content.ContentValues();
       values.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME,name);
@@ -176,12 +218,11 @@ public class MainActivity extends Activity {
       android.net.Uri uri=getContentResolver().insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
       if(uri==null)throw new IOException("No se pudo crear archivo");
       try(OutputStream out=getContentResolver().openOutputStream(uri)){if(out==null)throw new IOException("No se pudo abrir archivo");pdf.writeTo(out);}
-      pdf.close();
       toast("PDF guardado en Descargas/ElCosteno");
-      Intent share=new Intent(Intent.ACTION_SEND);
-      share.setType("application/pdf");share.putExtra(Intent.EXTRA_STREAM,uri);share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-      startActivity(Intent.createChooser(share,"Enviar corte a la contadora"));
-    } catch(Exception e){toast("Error al generar PDF: "+e.getMessage());}
+      Intent share=new Intent(Intent.ACTION_SEND);share.setType("application/pdf");share.putExtra(Intent.EXTRA_STREAM,uri);share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+      startActivity(Intent.createChooser(share,"Compartir reporte"));
+    }catch(Exception e){toast("Error al generar PDF: "+e.getMessage());}
+    finally{pdf.close();}
   }
 
   private void printLogo(OutputStream out,String data) throws Exception {
