@@ -45,28 +45,54 @@ function renderSales(){$('sales').innerHTML=[...sales].reverse().map(s=>`<div cl
 function periodSales(){let now=new Date(),period=$('period').value;return sales.filter(s=>{let d=new Date(s.date);if(period==='day')return d.toDateString()===now.toDateString();if(period==='month')return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();let start=new Date(now.getFullYear(),now.getMonth(),now.getDate());start.setDate(start.getDate()-(start.getDay()+6)%7);return d>=start&&d<=now})}function cut(){let ss=periodSales(),m=new Map();ss.forEach(s=>s.items.forEach(i=>{let x=m.get(i.name)||{name:i.name,qty:0,amount:0};x.qty+=i.qty;x.amount+=i.qty*i.price;m.set(i.name,x)}));return {kind:'cut',label:$('period').selectedOptions[0].text,count:ss.length,amount:ss.reduce((a,s)=>a+s.amount,0),lines:[...m.values()]}}function renderCut(){let c=cut();$('summary').innerHTML=`<div class="summary"><div>Ventas<strong>${c.count}</strong></div><div>Total<strong>${fmt(c.amount)}</strong></div></div><h3>Por producto</h3>${c.lines.map(x=>`<div class="line"><span>${esc(x.name)} (${x.qty})</span><b>${fmt(x.amount)}</b></div>`).join('')||'<p class="muted">No hay ventas en este periodo.</p>'}`}$('period').onchange=renderCut;$('printCut').onclick=()=>showTicket(cut());$('downloadCutPdf').onclick=()=>{let c=cut();if(window.AndroidPrinter&&window.AndroidPrinter.downloadCutPdf){window.AndroidPrinter.downloadCutPdf(JSON.stringify({...c,generated:new Date().toISOString(),subtotal:periodSales().reduce((a,s)=>a+s.subtotal,0),tax:periodSales().reduce((a,s)=>a+s.tax,0),retention:periodSales().reduce((a,s)=>a+(s.retention||0),0),sales:periodSales().slice().sort((a,b)=>new Date(a.date)-new Date(b.date)).map(s=>({folio:s.folio,date:s.date,items:s.items,subtotal:s.subtotal,tax:s.tax||0,retention:s.retention||0,invoice:!!s.invoice,amount:s.amount}))}));}else alert('La descarga PDF estará disponible desde la APK Android.');};
 function download(name,content,type){let a=document.createElement('a'),u=URL.createObjectURL(new Blob([content],{type}));a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),2000)}$('export').onclick=()=>{let rows=[['folio','fecha','producto','cantidad','precio_unitario','importe','total_ticket','efectivo','cambio','iva','retencion_isr','con_factura']];sales.forEach(s=>s.items.forEach(i=>rows.push([s.folio,s.date,i.name,i.qty,i.price,(i.qty*i.price).toFixed(2),s.amount,s.cash,(s.cash-s.amount).toFixed(2),s.tax,s.retention||0,s.invoice?'SI':'NO'])));download('costeno-ventas.csv','\ufeff'+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n'),'text/csv;charset=utf-8')};$('clearHistory').onclick=()=>{if(!sales.length)return alert('No hay ventas registradas para borrar.');if(!confirm('¿Borrar TODO el historial de ventas de este dispositivo? También se reiniciarán los cortes de caja. Esta acción no se puede deshacer.'))return;let answer=prompt('Para confirmar, escribe BORRAR en mayúsculas:');if(answer!=='BORRAR')return alert('Operación cancelada. No se borró ninguna venta.');sales=[];save('ec_sales',sales);lastTicket=null;$('ticketPanel').classList.add('hidden');renderSales();renderCut();alert('Historial de ventas borrado. Los precios, logos y folios se conservaron.')};$('backup').onclick=()=>download('costeno-respaldo.json',JSON.stringify({products,sales,next,logo,headerLogo},null,2),'application/json');$('restore').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let o=JSON.parse(await f.text());if(!Array.isArray(o.products)||!Array.isArray(o.sales)||!Number.isInteger(o.next))throw Error();if(!confirm('¿Restaurar respaldo? Reemplazará los registros de este dispositivo.'))return;save('ec_products',o.products);save('ec_sales',o.sales);save('ec_next',o.next);if(o.logo)localStorage.setItem('ec_logo',o.logo);if(o.headerLogo)localStorage.setItem('ec_header_logo',o.headerLogo);else localStorage.removeItem('ec_header_logo');location.reload()}catch{alert('Archivo de respaldo inválido')}};
 function showOpeningWelcome(){
-  const target=$('headerLogo'),source=headerLogo||logo;
-  const splash=document.createElement('div');splash.id='welcomeSplash';splash.setAttribute('aria-hidden','true');
-  if(source){const picture=document.createElement('img');picture.src=source;picture.alt='';splash.appendChild(picture)}
-  else {const word=document.createElement('div');word.className='welcomeText';word.textContent='🌮 EL COSTEÑO';splash.appendChild(word)}
-  document.body.appendChild(splash);
+  const target=$('headerLogo');
+  const source=headerLogo||logo||'./icon-512.png';
+  const splash=document.createElement('div');
+  splash.id='welcomeSplash';splash.setAttribute('aria-hidden','true');
+  const picture=document.createElement('img');picture.src=source;picture.alt='';
+  splash.appendChild(picture);document.body.appendChild(splash);
   const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let finished=false;const finish=()=>{if(finished)return;finished=true;splash.remove();document.getElementById('welcomeFlying')?.remove();if(target)target.style.visibility='';document.body.classList.add('welcome-arrived');setTimeout(()=>{document.body.classList.add('welcome-fading');setTimeout(()=>{document.body.classList.add('welcome-done');document.body.classList.remove('welcome-arrived','welcome-fading');},380)},2000);};
-  if(!source||!target||target.classList.contains('hidden')){setTimeout(finish,reduce?150:1350);return}
-  const picture=splash.querySelector('img');
-  const begin=()=>{
-    if(reduce){finish();return}
-    const start=picture.getBoundingClientRect(),end=target.getBoundingClientRect();
-    if(!start.width||!end.width){finish();return}
+  let ended=false;
+  function arrive(){
+    if(ended)return;ended=true;
+    splash.remove();
+    if(target){target.style.visibility='';target.style.opacity='1'}
+    document.getElementById('welcomeFlying')?.remove();
+    document.body.classList.add('welcome-arrived');
+    setTimeout(()=>{
+      document.body.classList.add('welcome-fading');
+      setTimeout(()=>{
+        document.body.classList.add('welcome-done');
+        document.body.classList.remove('welcome-arrived','welcome-fading');
+      },400);
+    },2000);
+  }
+  function start(){
+    if(reduce){setTimeout(arrive,200);return}
+    const startRect=picture.getBoundingClientRect();
+    const header=document.querySelector('header');
+    const endRect=target&&!target.classList.contains('hidden')?target.getBoundingClientRect():header.getBoundingClientRect();
+    if(!startRect.width||!endRect.width){setTimeout(arrive,300);return}
     const flying=document.createElement('img');flying.id='welcomeFlying';flying.src=source;flying.alt='';
-    Object.assign(flying.style,{left:start.left+'px',top:start.top+'px',width:start.width+'px',height:start.height+'px'});
-    document.body.appendChild(flying);target.style.visibility='hidden';picture.style.visibility='hidden';
-    const frames=[{left:start.left+'px',top:start.top+'px',width:start.width+'px',height:start.height+'px',transform:'scale(1.035)'},{left:end.left+'px',top:end.top+'px',width:end.width+'px',height:end.height+'px',transform:'scale(1)'}];
-    const animation=flying.animate(frames,{duration:750,easing:'cubic-bezier(.22,1,.36,1)',fill:'forwards'});
-    splash.style.opacity='0';animation.onfinish=finish;animation.oncancel=finish;
-    setTimeout(finish,1050);
-  };
-  if(picture.complete){setTimeout(begin,1050)}else{picture.onload=()=>setTimeout(begin,1050);picture.onerror=()=>setTimeout(finish,1050)}
+    const finalWidth=target&&!target.classList.contains('hidden')?endRect.width:Math.min(220,endRect.width*.65);
+    const finalHeight=target&&!target.classList.contains('hidden')?endRect.height:70;
+    const finalLeft=target&&!target.classList.contains('hidden')?endRect.left:(innerWidth-finalWidth)/2;
+    const finalTop=target&&!target.classList.contains('hidden')?endRect.top:endRect.top+6;
+    Object.assign(flying.style,{position:'fixed',left:startRect.left+'px',top:startRect.top+'px',width:startRect.width+'px',height:startRect.height+'px',transition:'none'});
+    document.body.appendChild(flying);
+    if(target)target.style.visibility='hidden';
+    picture.style.visibility='hidden';
+    // Two animation frames ensure the browser paints the starting position before moving.
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      flying.style.transition='left 1050ms cubic-bezier(.25,.8,.25,1),top 1050ms cubic-bezier(.25,.8,.25,1),width 1050ms cubic-bezier(.25,.8,.25,1),height 1050ms cubic-bezier(.25,.8,.25,1)';
+      flying.style.left=finalLeft+'px';flying.style.top=finalTop+'px';
+      flying.style.width=finalWidth+'px';flying.style.height=finalHeight+'px';
+      splash.style.opacity='0';
+      setTimeout(arrive,1100);
+    }));
+  }
+  if(picture.complete&&picture.naturalWidth){setTimeout(start,850)}
+  else {picture.onload=()=>setTimeout(start,850);picture.onerror=()=>setTimeout(arrive,850)}
 }
 renderHeader();render();showOpeningWelcome();})();
 </script></body></html>
