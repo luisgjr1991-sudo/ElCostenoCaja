@@ -21,7 +21,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
+      - name: Verificar Android SDK preinstalado
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          test -d "$ANDROID_HOME/platforms" || exit 1
+          test -d "$ANDROID_HOME/build-tools" || exit 1
       - name: Preparar archivos web
         run: |
           mkdir -p app/src/main/assets
