@@ -242,7 +242,9 @@ public class MainActivity extends Activity {
         }
       }
       // Feed the paper beyond the last printed message so it can be torn off cleanly.
-      out.write(new byte[]{10,10,10});
+      // ESC J n: advance paper by n dots (about 10 mm at 203 dpi).
+      // Feed AFTER printing the footer so the tear edge does not cut the text.
+      out.write(new byte[]{27,74,80});
       out.flush();
       toast("Ticket enviado a la impresora.");
     } catch(Exception e) {toast("No se pudo imprimir: "+e.getMessage());}
