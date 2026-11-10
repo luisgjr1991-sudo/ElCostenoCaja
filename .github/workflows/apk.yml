@@ -28,9 +28,10 @@ jobs:
           test -d "$ANDROID_HOME/build-tools" || exit 1
       - name: Preparar archivos web
         run: |
-          mkdir -p app/src/main/assets
+          mkdir -p app/src/main/assets app/src/main/res/drawable-nodpi
           cp index.html manifest.webmanifest app/src/main/assets/
           cp icon-*.png app/src/main/assets/
+          cp icon-512.png app/src/main/res/drawable-nodpi/brand_logo.png
       - name: Compilar APK
         run: gradle assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
