@@ -231,16 +231,18 @@ public class MainActivity extends Activity {
       // CP850 is commonly supported by 58mm ESC/POS devices; accents transliterated for portability.
       String safe=java.text.Normalizer.normalize(content,java.text.Normalizer.Form.NFD)
         .replaceAll("\\p{M}+","").replace("ñ","n").replace("Ñ","N");
+      // Preserve the 32-column alignment. Splitting by spaces caused unwanted wrapping
+      // and wasted paper on the 58mm printer.
       for(String line:safe.split("\\n",-1)) {
-        StringBuilder wrap=new StringBuilder();
-        for(String word:line.split(" ")) {
-          if(wrap.length()+word.length()+1>32) {out.write((wrap.toString()+"\n").getBytes(Charset.forName("US-ASCII")));wrap.setLength(0);}
-          if(wrap.length()>0)wrap.append(' ');
-          wrap.append(word);
+        if(line.length()==0) { out.write(10); continue; }
+        for(int start=0;start<line.length();start+=32) {
+          String segment=line.substring(start,Math.min(start+32,line.length()));
+          out.write(segment.getBytes(Charset.forName("US-ASCII")));
+          out.write(10);
         }
-        out.write((wrap.toString()+"\n").getBytes(Charset.forName("US-ASCII")));
       }
-      out.write(new byte[]{10});
+      // Feed the paper beyond the last printed message so it can be torn off cleanly.
+      out.write(new byte[]{10,10,10});
       out.flush();
       toast("Ticket enviado a la impresora.");
     } catch(Exception e) {toast("No se pudo imprimir: "+e.getMessage());}
