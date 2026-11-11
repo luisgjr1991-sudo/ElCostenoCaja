@@ -4,10 +4,3 @@ android {
  compileSdk 35
  defaultConfig { applicationId 'mx.elcosteno.caja'; minSdk 26; targetSdk 28; versionCode 2; versionName '1.1' }
 }
-// Reutiliza el PNG original que se subió al repositorio, sin redibujarlo.
-tasks.register('prepareBrandLogo', Copy) {
- from('src/main/file_00000000a8b88212877a593c1893ae10.png')
- into('src/main/res/drawable-nodpi')
- rename { 'brand_logo.png' }
-}
-tasks.named('preBuild').configure { dependsOn('prepareBrandLogo') }
