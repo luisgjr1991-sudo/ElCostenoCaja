@@ -1,0 +1,1 @@
+<resources><style name="CostenoTheme" parent="android:style/Theme.Material.Light.NoActionBar"><item name="android:windowBackground">#17110E</item><item name="android:statusBarColor">#17110E</item><item name="android:navigationBarColor">#17110E</item></style></resources>
