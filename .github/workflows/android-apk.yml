@@ -1,0 +1,33 @@
+name: Compilar APK El Costeño
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'android/**'
+      - '.github/workflows/android-apk.yml'
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Instalar SDK
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Preparar contenido de la caja
+        run: |
+          mkdir -p android/app/src/main/assets
+          cp index.html android/app/src/main/assets/index.html
+          cp icon-512.png android/app/src/main/assets/icon-512.png || true
+      - name: Compilar APK
+        working-directory: android
+        run: gradle --no-daemon assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ElCostenoCaja-APK
+          path: android/app/build/outputs/apk/debug/*.apk
