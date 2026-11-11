@@ -28,6 +28,7 @@ jobs:
         run: |
           mkdir -p android/app/src/main/assets
           cp index.html android/app/src/main/assets/index.html
+          cp android/app/src/main/file_000000002e348212a1fdaa37bd6a866d.png android/app/src/main/assets/file_000000002e348212a1fdaa37bd6a866d.png
           cp file_00000000277c82128c9cdeb4bae0c5ea.png android/app/src/main/assets/file_00000000277c82128c9cdeb4bae0c5ea.png
           cp file_00000000a8b88212877a593c1893ae10.png android/app/src/main/assets/file_00000000a8b88212877a593c1893ae10.png
           cp icon-512.png android/app/src/main/assets/icon-512.png || true
