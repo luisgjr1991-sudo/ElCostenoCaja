@@ -46,6 +46,8 @@ jobs:
           folder=Path('android/app/src/main/res/drawable-nodpi')
           folder.mkdir(parents=True,exist_ok=True)
           out.save(folder/'brand_logo.png')
+          # Recurso exclusivo del icono, sin colisiones con iconos heredados.
+          out.save(folder/'costeno_launcher.png')
           # Icono independiente de la pantalla de inicio y del ticket.
           for density,size in [('mdpi',48),('hdpi',72),('xhdpi',96),('xxhdpi',144),('xxxhdpi',192)]:
               target=Path('android/app/src/main/res/mipmap-'+density)
