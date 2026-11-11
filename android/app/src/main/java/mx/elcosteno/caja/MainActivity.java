@@ -33,6 +33,7 @@ public class MainActivity extends Activity {
  }
  public class Printer {
   @JavascriptInterface public void choosePrinter(){runOnUiThread(()->{if(bluetooth==null){status("Bluetooth no disponible");return;}try{ArrayList<BluetoothDevice> devices=new ArrayList<>(bluetooth.getBondedDevices());if(devices.isEmpty()){status("Vincula primero la impresora en Ajustes Bluetooth");return;}String[] names=new String[devices.size()];for(int i=0;i<devices.size();i++)names[i]=devices.get(i).getName()+" ("+devices.get(i).getAddress()+")";new AlertDialog.Builder(MainActivity.this).setTitle("Impresora Bluetooth").setItems(names,(d,which)->{printerAddress=devices.get(which).getAddress();getPreferences(0).edit().putString("printer",printerAddress).apply();status("Impresora seleccionada: "+names[which]);}).show();}catch(Exception e){status("Error Bluetooth: "+e.getMessage());}});}
+  @JavascriptInterface public String getDefaultTicketLogo(){try(InputStream in=getAssets().open("file_000000002e348212a1fdaa37bd6a866d.png");ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] buf=new byte[8192];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);return "data:image/png;base64,"+Base64.encodeToString(out.toByteArray(),Base64.NO_WRAP);}catch(Exception e){return "";}}
   @JavascriptInterface public void printTicket(String ticket){send(ticket);}
   @JavascriptInterface public void printTicketWithLogo(String ticket,String logo){send(ticket,logo);}
   private void send(String ticket){send(ticket,null);}
