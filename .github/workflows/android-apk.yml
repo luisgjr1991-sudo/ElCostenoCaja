@@ -31,6 +31,21 @@ jobs:
           cp file_00000000277c82128c9cdeb4bae0c5ea.png android/app/src/main/assets/file_00000000277c82128c9cdeb4bae0c5ea.png
           cp file_00000000a8b88212877a593c1893ae10.png android/app/src/main/assets/file_00000000a8b88212877a593c1893ae10.png
           cp icon-512.png android/app/src/main/assets/icon-512.png || true
+      - name: Usar logo original como icono Android
+        run: |
+          python3 -m pip install --quiet Pillow
+          python3 - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          src=Image.open('file_00000000a8b88212877a593c1893ae10.png').convert('RGBA')
+          # Conserva el diseño y lo centra en un lienzo cuadrado.
+          src.thumbnail((460,460), Image.Resampling.LANCZOS)
+          out=Image.new('RGBA',(512,512),(0,0,0,0))
+          out.alpha_composite(src,((512-src.width)//2,(512-src.height)//2))
+          folder=Path('android/app/src/main/res/drawable')
+          folder.mkdir(parents=True,exist_ok=True)
+          out.save(folder/'brand_logo.png')
+          PY
       - name: Compilar APK
         working-directory: android
         run: gradle --no-daemon assembleDebug
