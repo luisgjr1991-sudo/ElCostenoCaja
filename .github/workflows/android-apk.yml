@@ -28,6 +28,8 @@ jobs:
         run: |
           mkdir -p android/app/src/main/assets
           cp index.html android/app/src/main/assets/index.html
+          cp fondo-costeno.jpg android/app/src/main/assets/fondo-costeno.jpg
+          cp logo-costeno.png android/app/src/main/assets/logo-costeno.png
           cp icon-512.png android/app/src/main/assets/icon-512.png || true
       - name: Compilar APK
         working-directory: android
