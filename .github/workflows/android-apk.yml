@@ -42,7 +42,7 @@ jobs:
           src.thumbnail((460,460), Image.Resampling.LANCZOS)
           out=Image.new('RGBA',(512,512),(0,0,0,0))
           out.alpha_composite(src,((512-src.width)//2,(512-src.height)//2))
-          folder=Path('android/app/src/main/res/drawable')
+          folder=Path('android/app/src/main/res/drawable-nodpi')
           folder.mkdir(parents=True,exist_ok=True)
           out.save(folder/'brand_logo.png')
           PY
