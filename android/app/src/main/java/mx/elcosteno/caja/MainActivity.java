@@ -48,6 +48,7 @@ public class MainActivity extends Activity {
    });
   }
  }
+  private void toast(String message){runOnUiThread(()->android.widget.Toast.makeText(this,message,android.widget.Toast.LENGTH_LONG).show());}
   private void saveCutPdf(String json,boolean viaWhatsApp,String number) {
     PdfDocument pdf=new PdfDocument();
     try {
