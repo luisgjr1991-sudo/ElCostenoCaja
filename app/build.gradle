@@ -2,11 +2,28 @@ plugins { id 'com.android.application' }
 android { namespace 'mx.elcosteno.caja'; compileSdk 35
  defaultConfig { applicationId 'mx.elcosteno.caja'; minSdk 26; targetSdk 32; versionCode 1; versionName '1.0' } }
 
-// Generate Android launcher and splash drawable from the original repository logo.
-tasks.register('prepareBrandLogo', Copy) {
-    from rootProject.file('icon-512.png')
-    into file('src/main/res/drawable-nodpi')
-    rename { 'brand_logo.png' }
-    doFirst { if (!rootProject.file('icon-512.png').exists()) throw new GradleException('Missing icon-512.png') }
+// Keep the real El Costeño logo for the launcher and startup. Do not use the old EC placeholder.
+tasks.register('prepareBrandLogo') {
+    def sourceLogo = rootProject.file('file_00000000a8b88212877a593c1893ae10.png')
+    def outputLogo = file('src/main/res/drawable-nodpi/brand_logo.png')
+    inputs.file(sourceLogo)
+    outputs.file(outputLogo)
+    doLast {
+        if (!sourceLogo.isFile()) throw new GradleException('Missing original El Costeño logo: ' + sourceLogo)
+        def source = javax.imageio.ImageIO.read(sourceLogo)
+        if (source == null) throw new GradleException('Original El Costeño logo is not a readable PNG')
+        def target = new java.awt.image.BufferedImage(512, 512, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+        def graphics = target.createGraphics()
+        try {
+            graphics.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC)
+            graphics.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY)
+            def scale = Math.min(480d / source.width, 480d / source.height)
+            def width = Math.max(1, Math.round(source.width * scale) as int)
+            def height = Math.max(1, Math.round(source.height * scale) as int)
+            graphics.drawImage(source, (512-width).intdiv(2), (512-height).intdiv(2), width, height, null)
+        } finally { graphics.dispose() }
+        outputLogo.parentFile.mkdirs()
+        if (!javax.imageio.ImageIO.write(target, 'png', outputLogo)) throw new GradleException('Could not write launcher logo')
+    }
 }
 tasks.named('preBuild').configure { dependsOn tasks.named('prepareBrandLogo') }
