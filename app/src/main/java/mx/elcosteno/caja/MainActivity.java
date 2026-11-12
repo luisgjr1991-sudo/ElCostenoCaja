@@ -3,6 +3,8 @@ package mx.elcosteno.caja;
 import android.Manifest;
 import android.app.*;
 import android.os.*;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.bluetooth.*;
 import android.content.*;
 import android.content.pm.PackageManager;
@@ -37,6 +39,7 @@ public class MainActivity extends Activity {
     web.getSettings().setJavaScriptEnabled(true);
     web.getSettings().setDomStorageEnabled(true);
     web.addJavascriptInterface(new PrinterBridge(), "AndroidPrinter");
+    web.addJavascriptInterface(new CashAudioBridge(), "AndroidCashAudio");
     web.setWebChromeClient(new WebChromeClient() {
       @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
         if (fileChooserCallback != null) fileChooserCallback.onReceiveValue(null);
@@ -79,6 +82,44 @@ public class MainActivity extends Activity {
     ui.post(() -> web.evaluateJavascript("window.printerStatusUpdate && window.printerStatusUpdate(" + org.json.JSONObject.quote(s) + ")", null));
   }
   private void toast(String s) { ui.post(() -> Toast.makeText(this, s, Toast.LENGTH_LONG).show()); }
+
+  private ToneGenerator cashTone;
+  private final Object cashAudioLock = new Object();
+  private int cashSoundSequence = 0;
+  private void playCashAudio(String kind, int volume, boolean vibration) {
+    ui.post(() -> {
+      if(vibration)try {
+        android.os.Vibrator vib=(android.os.Vibrator)getSystemService(VIBRATOR_SERVICE);
+        if(vib!=null && vib.hasVibrator())vib.vibrate(android.os.VibrationEffect.createOneShot("tap".equals(kind)?15:65,android.os.VibrationEffect.DEFAULT_AMPLITUDE));
+      }catch(Exception ignored){}
+      if(volume<=0)return;
+      synchronized(cashAudioLock) {
+        cashSoundSequence++;
+        final int sequence=cashSoundSequence;
+        try {if(cashTone!=null)cashTone.release();}catch(Exception ignored){}
+        cashTone=new ToneGenerator(AudioManager.STREAM_MUSIC,Math.max(1,Math.min(100,volume)));
+        if("tap".equals(kind)) {
+          cashTone.startTone(ToneGenerator.TONE_DTMF_1,65);
+        } else if("error".equals(kind)) {
+          cashTone.startTone(ToneGenerator.TONE_PROP_NACK,240);
+        } else {
+          // Distinct two-part cash register chime, not the same key click.
+          cashTone.startTone(ToneGenerator.TONE_DTMF_9,105);
+          ui.postDelayed(()->{
+            synchronized(cashAudioLock) {
+              if(sequence==cashSoundSequence && cashTone!=null)
+                cashTone.startTone(ToneGenerator.TONE_PROP_ACK,320);
+            }
+          },135);
+        }
+      }
+    });
+  }
+  public class CashAudioBridge {
+    @JavascriptInterface public void play(String kind,int volume,boolean vibration) {
+      playCashAudio(kind,volume,vibration);
+    }
+  }
 
   public class PrinterBridge {
     @JavascriptInterface public void downloadCutPdf(String json) { ui.post(() -> saveCutPdf(json)); }
@@ -299,5 +340,6 @@ public class MainActivity extends Activity {
       fileChooserCallback=null;
     }
   }
+  @Override protected void onDestroy() { synchronized(cashAudioLock) { if(cashTone!=null){cashTone.release();cashTone=null;} } super.onDestroy(); }
   @Override public void onBackPressed() { if(web.canGoBack())web.goBack();else super.onBackPressed(); }
 }
