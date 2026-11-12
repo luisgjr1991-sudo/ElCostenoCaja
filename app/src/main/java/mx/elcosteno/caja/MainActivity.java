@@ -122,7 +122,8 @@ public class MainActivity extends Activity {
   }
 
   public class PrinterBridge {
-    @JavascriptInterface public void downloadCutPdf(String json) { ui.post(() -> saveCutPdf(json)); }
+    @JavascriptInterface public void downloadCutPdf(String json) { ui.post(() -> saveCutPdf(json,false,"")); }
+    @JavascriptInterface public void downloadAndShareCutPdf(String json,String number) { ui.post(() -> saveCutPdf(json,true,number)); }
     @JavascriptInterface public void choosePrinter() { ui.post(() -> selectPrinter()); }
     @JavascriptInterface public void createShortcut(String data) { ui.post(() -> pinShortcut(data)); }
     @JavascriptInterface public void printTicket(String content) { printTicketWithLogo(content, ""); }
@@ -184,7 +185,7 @@ public class MainActivity extends Activity {
       status("Impresora: "+labels[which]);
     }).setNegativeButton("Cancelar",null).show();
   }
-  private void saveCutPdf(String json) {
+  private void saveCutPdf(String json,boolean viaWhatsApp,String number) {
     PdfDocument pdf=new PdfDocument();
     try {
       JSONObject c=new JSONObject(json);
@@ -260,8 +261,22 @@ public class MainActivity extends Activity {
       if(uri==null)throw new IOException("No se pudo crear archivo");
       try(OutputStream out=getContentResolver().openOutputStream(uri)){if(out==null)throw new IOException("No se pudo abrir archivo");pdf.writeTo(out);}
       toast("PDF guardado en Descargas/ElCosteno");
-      Intent share=new Intent(Intent.ACTION_SEND);share.setType("application/pdf");share.putExtra(Intent.EXTRA_STREAM,uri);share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-      startActivity(Intent.createChooser(share,"Compartir reporte"));
+      if(viaWhatsApp){
+        Intent share=new Intent(Intent.ACTION_SEND);
+        share.setType("application/pdf");
+        share.putExtra(Intent.EXTRA_STREAM,uri);
+        share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        // WhatsApp does not guarantee automatic PDF delivery to a phone number.
+        // Let the user choose and confirm the recipient before sending.
+        try{
+          share.setPackage("com.whatsapp");
+          startActivity(share);
+        }catch(android.content.ActivityNotFoundException missing){
+          share.setPackage(null);
+          startActivity(Intent.createChooser(share,"Seleccionar WhatsApp y destinatario"));
+        }
+        toast("Selecciona el chat del número guardado y confirma el envío.");
+      }
     }catch(Exception e){toast("Error al generar PDF: "+e.getMessage());}
     finally{pdf.close();}
   }
