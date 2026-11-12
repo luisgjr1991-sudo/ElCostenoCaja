@@ -1,14 +1,6 @@
-name: Compilar APK El Costeño Caja
+name: LEGACY - APK pequeña (no usar)
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'app/**'
-      - 'index.html'
-      - 'build.gradle'
-      - 'settings.gradle'
-      - 'gradle.properties'
-      - '.github/workflows/build-apk.yml'
 jobs:
   build:
     runs-on: ubuntu-latest
