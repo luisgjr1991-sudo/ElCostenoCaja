@@ -10,6 +10,12 @@ import android.net.Uri;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Typeface;
+import android.graphics.pdf.PdfDocument;
+import android.os.Environment;
+import org.json.*;
 import android.util.Base64;
 import java.io.*;
 import java.util.*;
@@ -42,12 +48,111 @@ public class MainActivity extends Activity {
    });
   }
  }
+  private void saveCutPdf(String json,boolean viaWhatsApp,String number) {
+    PdfDocument pdf=new PdfDocument();
+    try {
+      JSONObject c=new JSONObject(json);
+      String stamp=new java.text.SimpleDateFormat("yyyyMMdd-HHmmss",Locale.US).format(new Date());
+      String name="ElCosteno-Corte-"+stamp+".pdf";
+      Paint p=new Paint(3);p.setColor(Color.BLACK);
+      PdfDocument.Page page=null;Canvas canvas=null;int y=0;int pageNo=0;
+      JSONArray sales=c.optJSONArray("sales");
+      java.util.TreeMap<String,java.util.ArrayList<JSONObject>> byDay=new java.util.TreeMap<>();
+      if(sales!=null)for(int i=0;i<sales.length();i++){
+        JSONObject sale=sales.getJSONObject(i);
+        String date=sale.optString("date");
+        String key=date.length()>=10?date.substring(0,10):"Sin fecha";
+        try { Date d=new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss",Locale.US).parse(date);
+          if(d!=null)key=new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.US).format(d);
+        }catch(Exception ignored){}
+        if(!byDay.containsKey(key))byDay.put(key,new java.util.ArrayList<>());
+        byDay.get(key).add(sale);
+      }
+      page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,++pageNo).create());
+      canvas=page.getCanvas();y=38;p.setTypeface(Typeface.DEFAULT_BOLD);p.setTextSize(17);
+      canvas.drawText("EL COSTENO | REPORTE DE VENTAS",32,y,p);y+=23;
+      p.setTypeface(Typeface.DEFAULT);p.setTextSize(10);
+      canvas.drawText("Periodo: "+c.optString("label")+"  |  Ventas: "+c.optInt("count"),32,y,p);y+=17;
+      canvas.drawText("Generado: "+new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm",new Locale("es","MX")).format(new Date()),32,y,p);y+=19;
+      canvas.drawText(String.format(Locale.US,"Subtotal $%.2f   IVA $%.2f   Ret. ISR $%.2f   TOTAL $%.2f",c.optDouble("subtotal"),c.optDouble("tax"),c.optDouble("retention"),c.optDouble("amount")),32,y,p);y+=22;
+      for(java.util.Map.Entry<String,java.util.ArrayList<JSONObject>> entry:byDay.entrySet()){
+        if(y>755){pdf.finishPage(page);page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,++pageNo).create());canvas=page.getCanvas();y=40;}
+        double dayTotal=0;for(JSONObject sale:entry.getValue())dayTotal+=sale.optDouble("amount");
+        p.setTypeface(Typeface.DEFAULT_BOLD);p.setTextSize(11);
+        canvas.drawText("FECHA: "+entry.getKey()+"  |  "+entry.getValue().size()+" ventas  |  Total: "+String.format(Locale.US,"$%.2f",dayTotal),32,y,p);y+=16;
+        p.setTypeface(Typeface.DEFAULT);p.setTextSize(9);
+        for(JSONObject sale:entry.getValue()){
+          if(y>770){pdf.finishPage(page);page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,++pageNo).create());canvas=page.getCanvas();y=40;}
+          String folio=String.format(Locale.US,"%06d",sale.optInt("folio"));
+          canvas.drawText("Folio "+folio+(sale.optBoolean("invoice")?" [FACTURA]":""),42,y,p);
+          canvas.drawText(String.format(Locale.US,"$%.2f",sale.optDouble("amount")),480,y,p);y+=13;
+          JSONArray items=sale.optJSONArray("items");
+          if(items!=null)for(int j=0;j<items.length();j++){
+            if(y>770){pdf.finishPage(page);page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,++pageNo).create());canvas=page.getCanvas();y=40;}
+            JSONObject item=items.getJSONObject(j);
+            String product=item.optString("name").replaceAll("[\\r\\n]"," ");
+            if(product.length()>48)product=product.substring(0,48);
+            canvas.drawText("  "+item.optInt("qty")+" x "+product,52,y,p);
+            canvas.drawText(String.format(Locale.US,"$%.2f",item.optInt("qty")*item.optDouble("price")),480,y,p);y+=12;
+          }
+          if(sale.optBoolean("invoice")){
+            canvas.drawText(String.format(Locale.US,"Subtotal %.2f  |  IVA %.2f  |  Ret. ISR %.2f",sale.optDouble("subtotal"),sale.optDouble("tax"),sale.optDouble("retention")),52,y,p);y+=13;
+          }
+        }
+        y+=9;
+      }
+      if(y>710){pdf.finishPage(page);page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,++pageNo).create());canvas=page.getCanvas();y=40;}
+      p.setTypeface(Typeface.DEFAULT_BOLD);p.setTextSize(12);canvas.drawText("FACTURAS DEL PERIODO",32,y,p);y+=18;
+      p.setTypeface(Typeface.DEFAULT);p.setTextSize(9);
+      double invoiced=0,retained=0;int invoiceCount=0;
+      if(sales!=null)for(int i=0;i<sales.length();i++){
+        JSONObject sale=sales.getJSONObject(i);if(!sale.optBoolean("invoice"))continue;
+        if(y>770){pdf.finishPage(page);page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,++pageNo).create());canvas=page.getCanvas();y=40;}
+        invoiceCount++;invoiced+=sale.optDouble("amount");retained+=sale.optDouble("retention");
+        String date=sale.optString("date");if(date.length()>10)date=date.substring(0,10);
+        canvas.drawText(date+"  Folio "+sale.optInt("folio")+"  Sub. "+String.format(Locale.US,"%.2f",sale.optDouble("subtotal"))+"  IVA "+String.format(Locale.US,"%.2f",sale.optDouble("tax"))+"  ISR "+String.format(Locale.US,"%.2f",sale.optDouble("retention")),38,y,p);
+        canvas.drawText(String.format(Locale.US,"$%.2f",sale.optDouble("amount")),480,y,p);y+=15;
+      }
+      if(y>775){pdf.finishPage(page);page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,++pageNo).create());canvas=page.getCanvas();y=40;}
+      p.setTypeface(Typeface.DEFAULT_BOLD);canvas.drawText(String.format(Locale.US,"Facturas: %d  |  Total facturado: $%.2f  |  ISR retenido: $%.2f",invoiceCount,invoiced,retained),32,y,p);
+      pdf.finishPage(page);
+      android.content.ContentValues values=new android.content.ContentValues();
+      values.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME,name);
+      values.put(android.provider.MediaStore.MediaColumns.MIME_TYPE,"application/pdf");
+      values.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/ElCosteno");
+      android.net.Uri uri=getContentResolver().insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
+      if(uri==null)throw new IOException("No se pudo crear archivo");
+      try(OutputStream out=getContentResolver().openOutputStream(uri)){if(out==null)throw new IOException("No se pudo abrir archivo");pdf.writeTo(out);}
+      toast("PDF guardado en Descargas/ElCosteno");
+      if(viaWhatsApp){
+        Intent share=new Intent(Intent.ACTION_SEND);
+        share.setType("application/pdf");
+        share.putExtra(Intent.EXTRA_STREAM,uri);
+        share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        // WhatsApp does not guarantee automatic PDF delivery to a phone number.
+        // Let the user choose and confirm the recipient before sending.
+        try{
+          share.setPackage("com.whatsapp");
+          startActivity(share);
+        }catch(android.content.ActivityNotFoundException missing){
+          share.setPackage(null);
+          startActivity(Intent.createChooser(share,"Seleccionar WhatsApp y destinatario"));
+        }
+        toast("Selecciona el chat del número guardado y confirma el envío.");
+      }
+    }catch(Exception e){toast("Error al generar PDF: "+e.getMessage());}
+    finally{pdf.close();}
+  }
+
+
  public class PersistentStore {
   @JavascriptInterface public String get(String key){return getSharedPreferences("costeno_data",MODE_PRIVATE).getString(key,null);}
   @JavascriptInterface public void put(String key,String value){getSharedPreferences("costeno_data",MODE_PRIVATE).edit().putString(key,value).commit();}
   @JavascriptInterface public void remove(String key){getSharedPreferences("costeno_data",MODE_PRIVATE).edit().remove(key).commit();}
  }
  public class Printer {
+  @JavascriptInterface public void downloadCutPdf(String json){runOnUiThread(()->saveCutPdf(json,false,""));}
+  @JavascriptInterface public void downloadAndShareCutPdf(String json,String number){runOnUiThread(()->saveCutPdf(json,true,number));}
   @JavascriptInterface public void choosePrinter(){runOnUiThread(()->{if(bluetooth==null){status("Bluetooth no disponible");return;}try{ArrayList<BluetoothDevice> devices=new ArrayList<>(bluetooth.getBondedDevices());if(devices.isEmpty()){status("Vincula primero la impresora en Ajustes Bluetooth");return;}String[] names=new String[devices.size()];for(int i=0;i<devices.size();i++)names[i]=devices.get(i).getName()+" ("+devices.get(i).getAddress()+")";new AlertDialog.Builder(MainActivity.this).setTitle("Impresora Bluetooth").setItems(names,(d,which)->{printerAddress=devices.get(which).getAddress();getPreferences(0).edit().putString("printer",printerAddress).apply();status("Impresora seleccionada: "+names[which]);}).show();}catch(Exception e){status("Error Bluetooth: "+e.getMessage());}});}
   @JavascriptInterface public String getDefaultTicketLogo(){try(InputStream in=getAssets().open("file_000000002e348212a1fdaa37bd6a866d.png");ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] buf=new byte[8192];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);return "data:image/png;base64,"+Base64.encodeToString(out.toByteArray(),Base64.NO_WRAP);}catch(Exception e){return "";}}
   @JavascriptInterface public void printTicket(String ticket){send(ticket);}
