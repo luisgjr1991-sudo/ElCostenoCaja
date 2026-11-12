@@ -1,5 +1,7 @@
 package mx.elcosteno.caja;
 import android.app.*;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.os.*;
 import android.webkit.*;
 import android.bluetooth.*;
@@ -24,8 +26,22 @@ public class MainActivity extends Activity {
    try{Intent intent=new Intent(Intent.ACTION_GET_CONTENT);intent.addCategory(Intent.CATEGORY_OPENABLE);intent.setType("image/*");startActivityForResult(Intent.createChooser(intent,"Elegir imagen del logo"),PICK_IMAGE_REQUEST);return true;}
    catch(Exception e){pendingFiles=null;callback.onReceiveValue(null);return true;}
   }
- });web.setWebViewClient(new WebViewClient());web.addJavascriptInterface(new Printer(),"AndroidPrinter");web.addJavascriptInterface(new PersistentStore(),"AndroidStorage");bluetooth=BluetoothAdapter.getDefaultAdapter();printerAddress=getPreferences(0).getString("printer","");web.loadUrl("file:///android_asset/index.html");}
+ });web.setWebViewClient(new WebViewClient());web.addJavascriptInterface(new Printer(),"AndroidPrinter");web.addJavascriptInterface(new PersistentStore(),"AndroidStorage");web.addJavascriptInterface(new CashAudio(),"AndroidCashAudio");bluetooth=BluetoothAdapter.getDefaultAdapter();printerAddress=getPreferences(0).getString("printer","");web.loadUrl("file:///android_asset/index.html");}
  @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){super.onActivityResult(requestCode,resultCode,data);if(requestCode==PICK_IMAGE_REQUEST&&pendingFiles!=null){Uri[] result=(resultCode==RESULT_OK&&data!=null&&data.getData()!=null)?new Uri[]{data.getData()}:null;pendingFiles.onReceiveValue(result);pendingFiles=null;}}
+ public class CashAudio {
+  @JavascriptInterface public void play(String kind,int volume,boolean vibrate){
+   runOnUiThread(()->{
+    try{
+     if(vibrate){android.os.Vibrator v=(android.os.Vibrator)getSystemService(VIBRATOR_SERVICE);if(v!=null&&v.hasVibrator())v.vibrate(85);}
+     if(volume<=0)return;
+     final ToneGenerator tone=new ToneGenerator(AudioManager.STREAM_MUSIC,Math.max(1,Math.min(100,volume)));
+     int sound="error".equals(kind)?ToneGenerator.TONE_PROP_NACK:ToneGenerator.TONE_PROP_ACK;
+     tone.startTone(sound,180);
+     new Handler(Looper.getMainLooper()).postDelayed(()->{try{tone.release();}catch(Exception ignored){}},300);
+    }catch(Exception ignored){}
+   });
+  }
+ }
  public class PersistentStore {
   @JavascriptInterface public String get(String key){return getSharedPreferences("costeno_data",MODE_PRIVATE).getString(key,null);}
   @JavascriptInterface public void put(String key,String value){getSharedPreferences("costeno_data",MODE_PRIVATE).edit().putString(key,value).commit();}
