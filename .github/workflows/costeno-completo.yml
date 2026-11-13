@@ -1,11 +1,5 @@
 name: El Costeno Caja APK completa
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'index.html'
-      - 'app/**'
-      - '.github/workflows/costeno-completo.yml'
   workflow_dispatch:
 jobs:
   build:
