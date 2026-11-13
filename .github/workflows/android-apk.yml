@@ -28,6 +28,7 @@ jobs:
         run: |
           mkdir -p android/app/src/main/assets
           cp index.html android/app/src/main/assets/index.html
+          grep -q 'cardTypeDialog' android/app/src/main/assets/index.html || { echo 'Falta selector de tarjeta'; exit 1; }
           cp android/app/src/main/file_000000002e348212a1fdaa37bd6a866d.png android/app/src/main/assets/file_000000002e348212a1fdaa37bd6a866d.png
           cp file_00000000277c82128c9cdeb4bae0c5ea.png android/app/src/main/assets/file_00000000277c82128c9cdeb4bae0c5ea.png
           cp file_00000000a8b88212877a593c1893ae10.png android/app/src/main/assets/file_00000000a8b88212877a593c1893ae10.png
@@ -63,7 +64,7 @@ jobs:
           ls -lh android/app/build/outputs/apk/debug/app-debug.apk
           bytes=$(stat -c%s android/app/build/outputs/apk/debug/app-debug.apk)
           echo "APK size: $bytes bytes"
-          test "$bytes" -ge 1000000 || { echo 'ERROR: APK sospechosamente pequeña; no publicar'; exit 1; }
+          test "$bytes" -ge 5000000 || { echo 'ERROR: APK sospechosamente pequeña; no publicar'; exit 1; }
       - name: Nombrar APK para compartir
         run: cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/ElCostenoCaja.apk
       - uses: actions/upload-artifact@v4
