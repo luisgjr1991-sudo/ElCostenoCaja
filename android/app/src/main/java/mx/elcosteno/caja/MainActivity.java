@@ -65,7 +65,7 @@ public class MainActivity extends Activity {
      float level=Math.max(0f,Math.min(1f,volume/100f));player.setVolume(level,level);
      player.setOnCompletionListener(p->{p.release();if(activeSound==p)activeSound=null;});
      player.prepare();activeSound=player;player.start();
-    }catch(Exception ex){android.util.Log.e("CostenoAudio","No se pudo reproducir audio real",ex);}
+    }catch(Exception ex){android.util.Log.e("CostenoAudio","No se pudo reproducir audio real",ex);toast("No se pudo reproducir el audio MP3: "+ex.getClass().getSimpleName());}
    });
   }
  }
