@@ -87,10 +87,13 @@ public class MainActivity extends Activity {
   private final Object cashAudioLock = new Object();
   private int cashSoundSequence = 0;
   private void playCashAudio(String kind, int volume, boolean vibration) {
+    final String[] parts=kind.split(":");
+    final String event=parts[0];
+    final boolean modern=parts.length>1 && "modern".equals(parts[1]);
     ui.post(() -> {
       if(vibration)try {
         android.os.Vibrator vib=(android.os.Vibrator)getSystemService(VIBRATOR_SERVICE);
-        if(vib!=null && vib.hasVibrator())vib.vibrate(android.os.VibrationEffect.createOneShot("tap".equals(kind)?15:65,android.os.VibrationEffect.DEFAULT_AMPLITUDE));
+        if(vib!=null && vib.hasVibrator())vib.vibrate(android.os.VibrationEffect.createOneShot("tap".equals(event)?15:65,android.os.VibrationEffect.DEFAULT_AMPLITUDE));
       }catch(Exception ignored){}
       if(volume<=0)return;
       synchronized(cashAudioLock) {
@@ -98,19 +101,20 @@ public class MainActivity extends Activity {
         final int sequence=cashSoundSequence;
         try {if(cashTone!=null)cashTone.release();}catch(Exception ignored){}
         cashTone=new ToneGenerator(AudioManager.STREAM_MUSIC,Math.max(1,Math.min(100,volume)));
-        if("tap".equals(kind)) {
-          cashTone.startTone(ToneGenerator.TONE_DTMF_1,65);
-        } else if("error".equals(kind)) {
-          cashTone.startTone(ToneGenerator.TONE_PROP_NACK,240);
-        } else {
-          // Distinct two-part cash register chime, not the same key click.
-          cashTone.startTone(ToneGenerator.TONE_DTMF_9,105);
-          ui.postDelayed(()->{
-            synchronized(cashAudioLock) {
-              if(sequence==cashSoundSequence && cashTone!=null)
-                cashTone.startTone(ToneGenerator.TONE_PROP_ACK,320);
-            }
-          },135);
+        final int[] notes;
+        final int[] durations;
+        switch(event){
+          case "product":notes=modern?new int[]{ToneGenerator.TONE_DTMF_5,ToneGenerator.TONE_DTMF_8}:new int[]{ToneGenerator.TONE_PROP_BEEP2,ToneGenerator.TONE_PROP_ACK};durations=new int[]{60,65};break;
+          case "navigate":notes=new int[]{modern?ToneGenerator.TONE_DTMF_2:ToneGenerator.TONE_PROP_BEEP};durations=new int[]{55};break;
+          case "error":case "warning":notes=new int[]{ToneGenerator.TONE_PROP_NACK,ToneGenerator.TONE_PROP_NACK};durations=new int[]{100,115};break;
+          case "success":notes=modern?new int[]{ToneGenerator.TONE_DTMF_9,ToneGenerator.TONE_DTMF_6,ToneGenerator.TONE_DTMF_3}:new int[]{ToneGenerator.TONE_PROP_BEEP2,ToneGenerator.TONE_PROP_ACK,ToneGenerator.TONE_PROP_ACK};durations=new int[]{85,115,210};break;
+          default:notes=new int[]{modern?ToneGenerator.TONE_DTMF_1:ToneGenerator.TONE_PROP_BEEP};durations=new int[]{45};break;
+        }
+        int delay=0;
+        for(int i=0;i<notes.length;i++){
+          final int tone=notes[i],ms=durations[i];
+          ui.postDelayed(()->{synchronized(cashAudioLock){if(sequence==cashSoundSequence && cashTone!=null)try{cashTone.startTone(tone,ms);}catch(Exception ignored){}}},delay);
+          delay+=ms+55;
         }
       }
     });
