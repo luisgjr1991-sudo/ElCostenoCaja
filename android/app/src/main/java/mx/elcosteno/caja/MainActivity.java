@@ -48,26 +48,24 @@ public class MainActivity extends Activity {
   @Override public boolean shouldOverrideUrlLoading(WebView view,String url){return route(Uri.parse(url));}
  });web.addJavascriptInterface(new Printer(),"AndroidPrinter");web.addJavascriptInterface(new PersistentStore(),"AndroidStorage");web.addJavascriptInterface(new CashAudio(),"AndroidCashAudio");bluetooth=BluetoothAdapter.getDefaultAdapter();printerAddress=getPreferences(0).getString("printer","");web.loadUrl("file:///android_asset/index.html");}
  @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){super.onActivityResult(requestCode,resultCode,data);if(requestCode==PICK_IMAGE_REQUEST&&pendingFiles!=null){Uri[] result=(resultCode==RESULT_OK&&data!=null&&data.getData()!=null)?new Uri[]{data.getData()}:null;pendingFiles.onReceiveValue(result);pendingFiles=null;}}
+ private android.media.MediaPlayer activeSound;
  public class CashAudio {
   @JavascriptInterface public void play(String kind,int volume,boolean vibrate){
    runOnUiThread(()->{
+    String[] parts=kind.split(":");String event=parts[0],style=parts.length>1?parts[1]:"classic";
     try{
-     if(vibrate){android.os.Vibrator v=(android.os.Vibrator)getSystemService(VIBRATOR_SERVICE);if(v!=null&&v.hasVibrator())v.vibrate(85);}
+     if(vibrate){android.os.Vibrator v=(android.os.Vibrator)getSystemService(VIBRATOR_SERVICE);if(v!=null&&v.hasVibrator())v.vibrate(60);}
+     if(activeSound!=null){try{activeSound.stop();activeSound.release();}catch(Exception ignored){}activeSound=null;}
      if(volume<=0)return;
-     final ToneGenerator tone=new ToneGenerator(AudioManager.STREAM_MUSIC,Math.max(1,Math.min(100,volume)));
-     String[] parts=kind.split(":");String event=parts[0];boolean modern=parts.length>1&&"modern".equals(parts[1]);
-     final int[] notes;final int[] durations;
-     switch(event){
-      case "product":notes=modern?new int[]{ToneGenerator.TONE_DTMF_5,ToneGenerator.TONE_DTMF_8}:new int[]{ToneGenerator.TONE_PROP_BEEP2,ToneGenerator.TONE_PROP_ACK};durations=new int[]{65,70};break;
-      case "navigate":notes=new int[]{modern?ToneGenerator.TONE_DTMF_2:ToneGenerator.TONE_PROP_BEEP};durations=new int[]{55};break;
-      case "warning":case "error":notes=new int[]{ToneGenerator.TONE_PROP_NACK,ToneGenerator.TONE_PROP_NACK};durations=new int[]{115,125};break;
-      case "success":notes=modern?new int[]{ToneGenerator.TONE_DTMF_9,ToneGenerator.TONE_DTMF_6,ToneGenerator.TONE_DTMF_3}:new int[]{ToneGenerator.TONE_PROP_BEEP2,ToneGenerator.TONE_PROP_ACK,ToneGenerator.TONE_PROP_ACK};durations=new int[]{90,115,210};break;
-      default:notes=new int[]{modern?ToneGenerator.TONE_DTMF_1:ToneGenerator.TONE_PROP_BEEP};durations=new int[]{40};break;
-     }
-     Handler handler=new Handler(Looper.getMainLooper());int delay=0;
-     for(int i=0;i<notes.length;i++){final int note=notes[i],duration=durations[i];handler.postDelayed(()->{try{tone.startTone(note,duration);}catch(Exception ignored){}},delay);delay+=duration+55;}
-     handler.postDelayed(()->{try{tone.release();}catch(Exception ignored){}},delay+100);
-    }catch(Exception ignored){}
+     String name="success".equals(event)?("modern".equals(style)?"register_modern.mp3":"register_classic.mp3"):"product".equals(event)?"register_key.mp3":"navigate".equals(event)?"soft_click.mp3":("warning".equals(event)||"error".equals(event))?"warning.mp3":"soft_click.mp3";
+     android.content.res.AssetFileDescriptor afd=getAssets().openFd("sounds/"+name);
+     android.media.MediaPlayer player=new android.media.MediaPlayer();
+     player.setAudioAttributes(new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ASSISTANCE_SONIFICATION).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+     player.setDataSource(afd.getFileDescriptor(),afd.getStartOffset(),afd.getLength());afd.close();
+     float level=Math.max(0f,Math.min(1f,volume/100f));player.setVolume(level,level);
+     player.setOnCompletionListener(p->{p.release();if(activeSound==p)activeSound=null;});
+     player.prepare();activeSound=player;player.start();
+    }catch(Exception ex){android.util.Log.e("CostenoAudio","No se pudo reproducir audio real",ex);}
    });
   }
  }
