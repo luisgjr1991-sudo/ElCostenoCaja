@@ -309,7 +309,7 @@ renderHeader();render();showOpeningWelcome();
     hx=x-22+Math.sin(u*3.1)*42;hy=y-55-Math.abs(Math.sin(u*3.1))*45;ha=Math.sin(u*5)*35;
    }else{
     const p=Math.min(1,(t-6.55)/1.05),e=1-Math.pow(1-p,3);
-    x=x0+(x0-x0)*e;y=floor+(y0-floor)*e;angle=(1-e)*Math.sin(t*5)*9;
+    const endU=6.55-1.18,span=Math.max(20,W-ow-10),lastX=5+span*(.5+.45*Math.sin(endU*1.35-1.2));x=lastX+(x0-lastX)*e;y=floor+(y0-floor)*e;angle=(1-e)*Math.sin(t*5)*9;
     sx=1;sy=1;
    }
    if(t<1.18){hx=x0;hy=y0;ha=angle*.6;}
