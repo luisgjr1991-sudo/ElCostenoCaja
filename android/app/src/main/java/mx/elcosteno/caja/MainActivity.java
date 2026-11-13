@@ -54,7 +54,7 @@ public class MainActivity extends Activity {
    runOnUiThread(()->{
     String[] parts=kind.split(":");String event=parts[0],style=parts.length>1?parts[1]:"classic";
     try{
-     if(vibrate){android.os.Vibrator v=(android.os.Vibrator)getSystemService(VIBRATOR_SERVICE);if(v!=null&&v.hasVibrator())v.vibrate(60);}
+     if(vibrate && ("success".equals(event)||"test".equals(event))){android.os.Vibrator v=(android.os.Vibrator)getSystemService(VIBRATOR_SERVICE);if(v!=null&&v.hasVibrator()){if(android.os.Build.VERSION.SDK_INT>=26){v.vibrate(android.os.VibrationEffect.createWaveform(new long[]{0,110,65,180},new int[]{0,220,0,255},-1));}else{v.vibrate(new long[]{0,110,65,180},-1);}}}
      if(activeSound!=null){try{activeSound.stop();activeSound.release();}catch(Exception ignored){}activeSound=null;}
      if(volume<=0)return;
      String name="success".equals(event)?("modern".equals(style)?"register_modern.mp3":"register_classic.mp3"):"product".equals(event)?"register_key.mp3":"navigate".equals(event)?"soft_click.mp3":("warning".equals(event)||"error".equals(event))?"warning.mp3":"soft_click.mp3";
