@@ -5,6 +5,7 @@ on:
     paths:
       - 'index.html'
       - 'android/**'
+      - 'scripts/download_cash_sounds.py'
       - '.github/workflows/android-apk.yml'
   workflow_dispatch:
 jobs:
@@ -33,6 +34,14 @@ jobs:
           cp file_00000000277c82128c9cdeb4bae0c5ea.png android/app/src/main/assets/file_00000000277c82128c9cdeb4bae0c5ea.png
           cp file_00000000a8b88212877a593c1893ae10.png android/app/src/main/assets/file_00000000a8b88212877a593c1893ae10.png
           cp icon-512.png android/app/src/main/assets/icon-512.png || true
+      - name: Integrar grabaciones reales CC0 de caja registradora
+        run: |
+          python3 scripts/download_cash_sounds.py
+          test -s android/app/src/main/assets/sounds/register_classic.mp3
+          test -s android/app/src/main/assets/sounds/register_modern.mp3
+          test -s android/app/src/main/assets/sounds/register_key.mp3
+          test -s android/app/src/main/assets/sounds/soft_click.mp3
+          test -s android/app/src/main/assets/sounds/warning.mp3
       - name: Usar logo original como icono Android
         run: |
           python3 -m pip install --quiet Pillow
