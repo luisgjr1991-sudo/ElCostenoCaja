@@ -191,6 +191,8 @@ $('restoreTicketLogo').onclick=()=>{if(!confirm('¿Restaurar el logo original bl
 
 // Menú visual de ajustes: conserva los controles originales y sus eventos.
 const settingsGroups=[['🎨','Personalizar',[3,4]],['🖨️','Impresora',[6]],['🖼️','Logotipos',[7,8,9]],['🧾','Tickets',[9]],['🏷️','Productos',[5]],['📲','WhatsApp',[1]],['🏛️','Datos fiscales',[0]],['🔊','Sonidos',[2]],['💾','Respaldos',[9]],['🎩','Animación',[10]]];
+// Mantener el orden histórico de las tarjetas: la nueva animación va al final.
+$('settingsOriginal').appendChild($('logoAnimationSettings'));
 const originalSettingsCards=Array.from($('settingsOriginal').children);const cardSlots=originalSettingsCards.map(()=>document.createComment('posición de ajuste'));
 // Los controles permanecen en el DOM para que sus eventos se inicialicen correctamente.
 const settingsNames=['Datos fiscales','WhatsApp','Sonidos','Temas','Fondo','Productos','Impresora','Logo superior','Icono','Ticket y respaldo','Animación'];
