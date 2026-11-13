@@ -55,9 +55,18 @@ public class MainActivity extends Activity {
      if(vibrate){android.os.Vibrator v=(android.os.Vibrator)getSystemService(VIBRATOR_SERVICE);if(v!=null&&v.hasVibrator())v.vibrate(85);}
      if(volume<=0)return;
      final ToneGenerator tone=new ToneGenerator(AudioManager.STREAM_MUSIC,Math.max(1,Math.min(100,volume)));
-     int sound="error".equals(kind)?ToneGenerator.TONE_PROP_NACK:ToneGenerator.TONE_PROP_ACK;
-     tone.startTone(sound,180);
-     new Handler(Looper.getMainLooper()).postDelayed(()->{try{tone.release();}catch(Exception ignored){}},300);
+     String[] parts=kind.split(":");String event=parts[0];boolean modern=parts.length>1&&"modern".equals(parts[1]);
+     final int[] notes;final int[] durations;
+     switch(event){
+      case "product":notes=modern?new int[]{ToneGenerator.TONE_DTMF_5,ToneGenerator.TONE_DTMF_8}:new int[]{ToneGenerator.TONE_PROP_BEEP2,ToneGenerator.TONE_PROP_ACK};durations=new int[]{65,70};break;
+      case "navigate":notes=new int[]{modern?ToneGenerator.TONE_DTMF_2:ToneGenerator.TONE_PROP_BEEP};durations=new int[]{55};break;
+      case "warning":case "error":notes=new int[]{ToneGenerator.TONE_PROP_NACK,ToneGenerator.TONE_PROP_NACK};durations=new int[]{115,125};break;
+      case "success":notes=modern?new int[]{ToneGenerator.TONE_DTMF_9,ToneGenerator.TONE_DTMF_6,ToneGenerator.TONE_DTMF_3}:new int[]{ToneGenerator.TONE_PROP_BEEP2,ToneGenerator.TONE_PROP_ACK,ToneGenerator.TONE_PROP_ACK};durations=new int[]{90,115,210};break;
+      default:notes=new int[]{modern?ToneGenerator.TONE_DTMF_1:ToneGenerator.TONE_PROP_BEEP};durations=new int[]{40};break;
+     }
+     Handler handler=new Handler(Looper.getMainLooper());int delay=0;
+     for(int i=0;i<notes.length;i++){final int note=notes[i],duration=durations[i];handler.postDelayed(()->{try{tone.startTone(note,duration);}catch(Exception ignored){}},delay);delay+=duration+55;}
+     handler.postDelayed(()->{try{tone.release();}catch(Exception ignored){}},delay+100);
     }catch(Exception ignored){}
    });
   }
