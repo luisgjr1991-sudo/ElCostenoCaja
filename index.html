@@ -86,6 +86,8 @@ body:has(#caja:not(.hidden)) .tabs button{padding:7px 3px!important;font-size:13
 #caja #reset{font-size:12px!important;min-height:32px!important}
 }
 
+/* Encabezado sin franja: mostrar el fondo de la pantalla detrás del logo. */
+body header,body.custom-background header,body[data-visual-theme] header{background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 /* Navegación inferior fija y logo de bienvenida a la derecha (noviembre 2026). */
 header{display:flex!important;justify-content:flex-end!important;align-items:center!important;text-align:right!important;padding-right:16px!important;min-height:65px}
 #headerLogo,body.welcome-done #headerLogo,body:has(#caja:not(.hidden)) #headerLogo{margin:0 0 0 auto!important;max-width:150px!important;max-height:65px!important}
