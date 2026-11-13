@@ -301,18 +301,30 @@ renderHeader();render();showOpeningWelcome();
     const p=(t-.45)/.73;y=y0+(floor-y0)*p*p;angle=10*p;
     if(p>.87){const k=(p-.87)/.13;sx=1+.26*k;sy=1-.31*k;}
    }else if(t<6.55){
-    const u=t-1.18,period=1.15,phase=(u%period)/period,hop=Math.sin(Math.PI*phase);
-    const span=Math.max(20,W-ow-10);
-    x=5+span*(.5+.45*Math.sin(u*1.35-1.2));
-    y=floor-Math.max(15,H*.22)*hop;
-    sx=1+.18*(1-hop);sy=1-.19*(1-hop);
-    if(phase<.18){sx=1.22-phase*.8;sy=.78+phase*.8}
-    angle=Math.sin(u*4)*9;
-    hx=x-22+Math.sin(u*3.1)*42;hy=y-55-Math.abs(Math.sin(u*3.1))*45;ha=Math.sin(u*5)*35;
+    // Saltos juguetones con profundidad: acercarse y alejarse de la pantalla.
+    const u=t-1.18,cycle=u/0.98,phase=cycle%1,hop=Math.pow(Math.max(0,Math.sin(Math.PI*phase)),0.8);
+    const depth=0.94+0.49*(0.5+0.5*Math.sin(u*1.85-1.1));
+    const flight=1+0.09*Math.sin(u*3.2);
+    const zoom=depth*flight;
+    const travel=Math.sin(u*1.43-1.1)*0.40+Math.sin(u*2.57)*0.09;
+    const desiredX=W*.5+travel*(W-ow*.65);
+    x=Math.max(ow*(zoom-1)*.5+8,Math.min(W-ow*(zoom+1)*.5-8,desiredX));
+    y=Math.max(75,Math.min(floor-10,floor-(H*.16+H*.07*Math.sin(u*1.2)**2)*hop));
+    const squash=Math.max(0,1-hop)*Math.pow(Math.max(0,Math.cos(Math.PI*phase)),8);
+    sx=zoom*(1+0.27*squash+0.10*hop);
+    sy=zoom*(1-0.24*squash+0.12*hop);
+    angle=Math.sin(u*4.2)*13+Math.sin(u*7.7)*5;
+    hx=x;hy=y;ha=angle;
    }else{
     const p=Math.min(1,(t-6.55)/1.05),e=1-Math.pow(1-p,3);
-    const endU=6.55-1.18,span=Math.max(20,W-ow-10),lastX=5+span*(.5+.45*Math.sin(endU*1.35-1.2));x=lastX+(x0-lastX)*e;y=floor+(y0-floor)*e;angle=(1-e)*Math.sin(t*5)*9;
-    sx=1;sy=1;
+    const u=6.55-1.18,depth=0.94+0.49*(0.5+0.5*Math.sin(u*1.85-1.1)),zoom=depth*(1+0.09*Math.sin(u*3.2));
+    const travel=Math.sin(u*1.43-1.1)*0.40+Math.sin(u*2.57)*0.09;
+    const desiredX=W*.5+travel*(W-ow*.65);
+    const lastX=Math.max(ow*(zoom-1)*.5+8,Math.min(W-ow*(zoom+1)*.5-8,desiredX));
+    const phase=(u/0.98)%1,hop=Math.pow(Math.max(0,Math.sin(Math.PI*phase)),0.8);
+    const lastY=Math.max(75,Math.min(floor-10,floor-(H*.16+H*.07*Math.sin(u*1.2)**2)*hop));
+    x=lastX+(x0-lastX)*e;y=lastY+(y0-lastY)*e;
+    sx=zoom+(1-zoom)*e;sy=sx;angle=(1-e)*(Math.sin(u*4.2)*13+Math.sin(u*7.7)*5);
    }
    if(t<1.18){hx=x0;hy=y0;ha=angle*.6;}
    if(t>=6.55){hx=x+Math.sin(t*10)*(1-(t-6.55)/1.05)*12;hy=y;ha=angle;}
