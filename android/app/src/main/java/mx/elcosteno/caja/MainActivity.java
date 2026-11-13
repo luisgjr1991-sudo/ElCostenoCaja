@@ -60,10 +60,10 @@ public class MainActivity extends Activity {
      String name="success".equals(event)?("modern".equals(style)?"register_modern.mp3":"register_classic.mp3"):"product".equals(event)?"register_key.mp3":"navigate".equals(event)?"soft_click.mp3":("warning".equals(event)||"error".equals(event))?"warning.mp3":"soft_click.mp3";
      android.content.res.AssetFileDescriptor afd=getAssets().openFd("sounds/"+name);
      android.media.MediaPlayer player=new android.media.MediaPlayer();
-     player.setAudioAttributes(new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ASSISTANCE_SONIFICATION).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+     player.setAudioAttributes(new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA).setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC).build());
      player.setDataSource(afd.getFileDescriptor(),afd.getStartOffset(),afd.getLength());afd.close();
      float level=Math.max(0f,Math.min(1f,volume/100f));player.setVolume(level,level);
-     player.setOnCompletionListener(p->{p.release();if(activeSound==p)activeSound=null;});
+     player.setOnCompletionListener(p->{p.release();if(activeSound==p)activeSound=null;});player.setOnErrorListener((p,what,extra)->{android.util.Log.e("CostenoAudio","MediaPlayer error "+what+"/"+extra);toast("Error al reproducir audio: "+what);if(activeSound==p)activeSound=null;return true;});
      player.prepare();activeSound=player;player.start();
     }catch(Exception ex){android.util.Log.e("CostenoAudio","No se pudo reproducir audio real",ex);toast("No se pudo reproducir el audio MP3: "+ex.getClass().getSimpleName());}
    });
