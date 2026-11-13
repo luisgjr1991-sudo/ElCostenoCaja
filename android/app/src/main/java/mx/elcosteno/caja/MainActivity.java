@@ -96,10 +96,19 @@ public class MainActivity extends Activity {
         p.setTypeface(Typeface.DEFAULT_BOLD);p.setTextSize(11);
         canvas.drawText("FECHA: "+entry.getKey()+"  |  "+entry.getValue().size()+" ventas  |  Total: "+String.format(Locale.US,"$%.2f",dayTotal),32,y,p);y+=16;
         p.setTypeface(Typeface.DEFAULT);p.setTextSize(9);
-        for(JSONObject sale:entry.getValue()){
+        for(int group=0;group<2;group++){
+          int groupCount=0;double groupTotal=0;
+          for(JSONObject itemSale:entry.getValue())if(itemSale.optBoolean("invoice")== (group==1)){groupCount++;groupTotal+=itemSale.optDouble("amount");}
+          if(y>745){pdf.finishPage(page);page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,++pageNo).create());canvas=page.getCanvas();y=40;}
+          p.setTypeface(Typeface.DEFAULT_BOLD);p.setTextSize(10);
+          canvas.drawText((group==0?"VENTAS NORMALES":"VENTAS CON FACTURA")+"  |  "+groupCount+" tickets  |  $"+String.format(Locale.US,"%.2f",groupTotal),42,y,p);y+=17;
+          p.setTypeface(Typeface.DEFAULT);p.setTextSize(9);
+          for(JSONObject sale:entry.getValue()){
+          if(sale.optBoolean("invoice")!=(group==1))continue;
           if(y>770){pdf.finishPage(page);page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,++pageNo).create());canvas=page.getCanvas();y=40;}
           String folio=String.format(Locale.US,"%06d",sale.optInt("folio"));
-          canvas.drawText("Folio "+folio+(sale.optBoolean("invoice")?" [FACTURA]":""),42,y,p);
+          String time=sale.optString("date");try{Date parsed=new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss",Locale.US).parse(time);if(parsed!=null)time=new java.text.SimpleDateFormat("HH:mm",Locale.US).format(parsed);}catch(Exception ignored){}
+          canvas.drawText("Folio "+folio+"  Hora: "+time+(sale.optBoolean("invoice")?" [FACTURA]":""),42,y,p);
           canvas.drawText(String.format(Locale.US,"$%.2f",sale.optDouble("amount")),480,y,p);y+=13;
           JSONArray items=sale.optJSONArray("items");
           if(items!=null)for(int j=0;j<items.length();j++){
@@ -112,6 +121,7 @@ public class MainActivity extends Activity {
           }
           if(sale.optBoolean("invoice")){
             canvas.drawText(String.format(Locale.US,"Subtotal %.2f  |  IVA %.2f  |  Ret. ISR %.2f",sale.optDouble("subtotal"),sale.optDouble("tax"),sale.optDouble("retention")),52,y,p);y+=13;
+          }
           }
         }
         y+=9;
