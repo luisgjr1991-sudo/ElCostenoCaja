@@ -32,7 +32,21 @@ public class MainActivity extends Activity {
    try{Intent intent=new Intent(Intent.ACTION_GET_CONTENT);intent.addCategory(Intent.CATEGORY_OPENABLE);intent.setType("image/*");startActivityForResult(Intent.createChooser(intent,"Elegir imagen del logo"),PICK_IMAGE_REQUEST);return true;}
    catch(Exception e){pendingFiles=null;callback.onReceiveValue(null);return true;}
   }
- });web.setWebViewClient(new WebViewClient());web.addJavascriptInterface(new Printer(),"AndroidPrinter");web.addJavascriptInterface(new PersistentStore(),"AndroidStorage");web.addJavascriptInterface(new CashAudio(),"AndroidCashAudio");bluetooth=BluetoothAdapter.getDefaultAdapter();printerAddress=getPreferences(0).getString("printer","");web.loadUrl("file:///android_asset/index.html");}
+ });web.setWebViewClient(new WebViewClient(){
+  private boolean route(Uri uri) {
+   if(uri==null)return false;
+   String scheme=uri.getScheme();
+   if("file".equalsIgnoreCase(scheme)||"about".equalsIgnoreCase(scheme))return false;
+   try {
+    Intent intent=new Intent(Intent.ACTION_VIEW,uri);
+    if("whatsapp".equalsIgnoreCase(scheme))intent.setPackage("com.whatsapp");
+    startActivity(intent);
+   }catch(Exception e){toast("No se pudo abrir WhatsApp: "+e.getMessage());}
+   return true;
+  }
+  @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request){return route(request.getUrl());}
+  @Override public boolean shouldOverrideUrlLoading(WebView view,String url){return route(Uri.parse(url));}
+ });web.addJavascriptInterface(new Printer(),"AndroidPrinter");web.addJavascriptInterface(new PersistentStore(),"AndroidStorage");web.addJavascriptInterface(new CashAudio(),"AndroidCashAudio");bluetooth=BluetoothAdapter.getDefaultAdapter();printerAddress=getPreferences(0).getString("printer","");web.loadUrl("file:///android_asset/index.html");}
  @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){super.onActivityResult(requestCode,resultCode,data);if(requestCode==PICK_IMAGE_REQUEST&&pendingFiles!=null){Uri[] result=(resultCode==RESULT_OK&&data!=null&&data.getData()!=null)?new Uri[]{data.getData()}:null;pendingFiles.onReceiveValue(result);pendingFiles=null;}}
  public class CashAudio {
   @JavascriptInterface public void play(String kind,int volume,boolean vibrate){
