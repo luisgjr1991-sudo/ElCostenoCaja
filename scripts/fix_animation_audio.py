@@ -5,7 +5,7 @@ s=p.read_text()
 old="if(window.AndroidCashAudio&&soundSettings.vibration){try{window.AndroidCashAudio.play(kind+':'+(soundSettings.style||'classic'),0,true)}catch(e){}}"
 assert old in s
 s=s.replace(old,"""// Keep the original Android register sounds, now played on a background thread.
- if(kind==='product'||kind==='tap'){const now=performance.now();if(now-(playSound._lastTap||0)<85)return;playSound._lastTap=now;}
+ if(kind==='product'||kind==='tap'){const now=performance.now();if(now-(playSound._lastTap||0)<85)return;playSound._lastTap=now;}\n if(window.AndroidCashAudio){try{window.AndroidCashAudio.play(kind+':'+(soundSettings.style||'classic'),soundSettings.enabled?Number(soundSettings.volume):0,!!soundSettings.vibration);return}catch(e){}}
  if(window.AndroidCashAudio){try{window.AndroidCashAudio.play(kind+':'+(soundSettings.style||'classic'),soundSettings.enabled?Number(soundSettings.volume):0,!!soundSettings.vibration);return}catch(e){}}
  """)
 # Separate layers are generated as real PNGs by the build, not runtime canvas masking.
