@@ -4,8 +4,10 @@ s=p.read_text()
 # Avoid expensive synchronous Android ToneGenerator creation on each tap.
 old="if(window.AndroidCashAudio&&soundSettings.vibration){try{window.AndroidCashAudio.play(kind+':'+(soundSettings.style||'classic'),0,true)}catch(e){}}"
 assert old in s
-s=s.replace(old,"""// Reuse one WebAudio context; never create Android ToneGenerator per button press.
- if(kind==='product'||kind==='tap'){const now=performance.now();if(now-(playSound._lastTap||0)<85)return;playSound._lastTap=now;}""")
+s=s.replace(old,"""// Keep the original Android register sounds, now played on a background thread.
+ if(kind==='product'||kind==='tap'){const now=performance.now();if(now-(playSound._lastTap||0)<85)return;playSound._lastTap=now;}
+ if(window.AndroidCashAudio){try{window.AndroidCashAudio.play(kind+':'+(soundSettings.style||'classic'),soundSettings.enabled?Number(soundSettings.volume):0,!!soundSettings.vibration);return}catch(e){}}
+ """)
 # Separate layers are generated as real PNGs by the build, not runtime canvas masking.
 a=s.index("  // Crear las dos capas desde el logo original: máscaras complementarias.")
 b=s.index("  active=true;start=performance.now();",a)
