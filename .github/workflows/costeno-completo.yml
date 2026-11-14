@@ -20,6 +20,8 @@ jobs:
       - name: Preparar interfaz web
         run: |
           mkdir -p app/src/main/assets
+          python3 -m pip install --quiet pillow
+          python3 scripts/generate_animation_assets.py
           python3 scripts/fix_animation_audio.py
           cp index.html app/src/main/assets/index.html
           cp manifest.webmanifest app/src/main/assets/manifest.webmanifest
