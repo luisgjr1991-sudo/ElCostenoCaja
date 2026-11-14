@@ -283,29 +283,12 @@ renderHeader();render();showOpeningWelcome();
  function activity(){lastActivity=Date.now();if(active)stop();schedule();}
  // Separa el sombrero en dos lienzos transparentes con una máscara curva,
  // evitando el recorte horizontal que partía ambas figuras.
- function splitLogo(src,done){
-  const im=new Image();im.onload=()=>{
-   try{
-    const w=im.naturalWidth,h=im.naturalHeight;
-    const make=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c};
-    const base=make(),cap=make(),bc=base.getContext('2d'),hc=cap.getContext('2d');
-    bc.drawImage(im,0,0);hc.drawImage(im,0,0);
-    // Contorno medido sobre el PNG original 1536x1024, no un recorte rectangular.
-    const points=[[475,255],[487,212],[518,181],[569,160],[635,148],[719,148],[816,161],[906,186],[976,96],[1031,37],[1090,12],[1145,10],[1201,42],[1240,95],[1275,178],[1294,266],[1367,299],[1440,341],[1491,402],[1510,465],[1490,524],[1450,565],[1393,590],[1331,593],[1260,572],[1190,544],[1114,508],[1045,468],[975,429],[902,404],[834,393],[790,412],[736,416],[675,406],[610,401],[552,381],[514,350],[490,317]];
-    const outline=c=>{c.beginPath();points.forEach(([px,py],i)=>{const x=px*w/1536,y=py*h/1024;if(i)c.lineTo(x,y);else c.moveTo(x,y)});c.closePath()};
-    hc.globalCompositeOperation='destination-in';outline(hc);hc.fill();
-    bc.globalCompositeOperation='destination-out';outline(bc);bc.fill();
-    done(base.toDataURL('image/png'),cap.toDataURL('image/png'));
-   }catch(e){done(src,null)}
-  };im.onerror=()=>done(src,null);im.src=src;
- }
  function begin(){
   if(active||!enabled.checked||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   const rect=original.getBoundingClientRect();if(rect.width<30||rect.height<20)return;
   active=true;start=performance.now();
   const url=original.currentSrc||original.src;
-  body.src=url;hat.style.visibility='hidden';
-  splitLogo(url,(base,cap)=>{if(!active)return;body.src=base;if(cap){hat.src=cap;hat.style.visibility='visible';splitReady=true}else{splitReady=false;hat.style.visibility='hidden'}});
+  body.src='./logo_body_animation.png';hat.src='./logo_hat_animation.png';hat.style.visibility='visible';
   for(const el of [body,hat]){el.style.width=rect.width+'px';el.style.height=rect.height+'px';}
   stage.classList.add('active');original.style.visibility='hidden';
   const W=innerWidth,H=innerHeight,ow=rect.width,oh=rect.height;
