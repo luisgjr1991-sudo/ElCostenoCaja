@@ -301,10 +301,15 @@ renderHeader();render();showOpeningWelcome();
     const canvas=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
     const mask=canvas(),m=mask.getContext('2d');
     m.fillStyle='white';m.beginPath();
-    m.moveTo(w*.43,h*.30);m.bezierCurveTo(w*.40,h*.12,w*.57,h*.01,w*.77,h*.01);
-    m.bezierCurveTo(w*.96,h*.01,w*1.02,h*.20,w*.99,h*.40);
-    m.bezierCurveTo(w*.94,h*.49,w*.71,h*.46,w*.55,h*.43);
-    m.bezierCurveTo(w*.46,h*.41,w*.43,h*.36,w*.43,h*.30);m.closePath();m.fill();
+    // Recorte siguiendo el ala inclinada del sombrero; no abarcar el texto Tacos.
+    // La parte inferior del ala asciende hacia la izquierda, en vez de cortar letras.
+    m.moveTo(w*.32,h*.19);
+    m.bezierCurveTo(w*.44,h*.10,w*.57,h*.005,w*.76,h*.005);
+    m.bezierCurveTo(w*.91,h*.005,w*.985,h*.12,w*.99,h*.28);
+    m.bezierCurveTo(w*1.005,h*.37,w*.97,h*.46,w*.92,h*.45);
+    m.bezierCurveTo(w*.78,h*.41,w*.59,h*.32,w*.42,h*.26);
+    m.bezierCurveTo(w*.35,h*.235,w*.31,h*.22,w*.32,h*.19);
+    m.closePath();m.fill();
     const hCanvas=canvas(),hc=hCanvas.getContext('2d'),bCanvas=canvas(),bc=bCanvas.getContext('2d');
     hc.drawImage(source,0,0);hc.globalCompositeOperation='destination-in';hc.drawImage(mask,0,0);
     bc.drawImage(source,0,0);bc.globalCompositeOperation='destination-out';bc.drawImage(mask,0,0);
