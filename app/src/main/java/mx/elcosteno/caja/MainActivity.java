@@ -87,6 +87,7 @@ public class MainActivity extends Activity {
   private final HandlerThread audioThread = new HandlerThread("CostenoAudio");
   private Handler audioHandler;
   private ToneGenerator cashTone;
+  private int cashToneVolume=-1;
   private final Object cashAudioLock = new Object();
   private int cashSoundSequence = 0;
   private void playCashAudio(String kind, int volume, boolean vibration) {
@@ -102,8 +103,11 @@ public class MainActivity extends Activity {
       synchronized(cashAudioLock) {
         cashSoundSequence++;
         final int sequence=cashSoundSequence;
-        try {if(cashTone!=null)cashTone.release();}catch(Exception ignored){}
-        cashTone=new ToneGenerator(AudioManager.STREAM_MUSIC,Math.max(1,Math.min(100,volume)));
+        if(cashTone==null || cashToneVolume!=volume){
+          try {if(cashTone!=null)cashTone.release();}catch(Exception ignored){}
+          cashTone=new ToneGenerator(AudioManager.STREAM_MUSIC,Math.max(1,Math.min(100,volume)));
+          cashToneVolume=volume;
+        }
         final int[] notes;
         final int[] durations;
         switch(event){
