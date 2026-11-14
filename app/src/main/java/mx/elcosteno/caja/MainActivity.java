@@ -137,6 +137,17 @@ public class MainActivity extends Activity {
     @JavascriptInterface public void downloadAndShareCutPdf(String json,String number) { ui.post(() -> saveCutPdf(json,true,number)); }
     @JavascriptInterface public void choosePrinter() { ui.post(() -> selectPrinter()); }
     @JavascriptInterface public void createShortcut(String data) { ui.post(() -> pinShortcut(data)); }
+    @JavascriptInterface public void printTransferQr(String clabe, String beneficiary) {
+      ui.post(() -> {
+        if(clabe==null || !clabe.matches("[0-9]{18}") || beneficiary==null || beneficiary.trim().isEmpty()) {
+          toast("Configura la CLABE y beneficiario en Ajustes."); return;
+        }
+        if(!permission()) { toast("Autoriza Bluetooth y vuelve a imprimir."); return; }
+        String mac=getPreferences(0).getString(PREF,"");
+        if(mac.isEmpty()) { selectPrinter(); toast("Selecciona la impresora y vuelve a imprimir."); return; }
+        new Thread(() -> sendTransferQr(mac,clabe,beneficiary.trim())).start();
+      });
+    }
     @JavascriptInterface public void printTicket(String content) { printTicketWithLogo(content, ""); }
     @JavascriptInterface public void printTicketWithLogo(String content, String logoData) {
       ui.post(() -> {
@@ -324,6 +335,35 @@ public class MainActivity extends Activity {
     out.write(row);out.write(new byte[]{27,97,0});
     bitmap.recycle();
     if(bitmap!=original)original.recycle();
+  }
+  private void sendTransferQr(String mac,String clabe,String beneficiary) {
+    BluetoothSocket socket=null;
+    try {
+      com.google.zxing.common.BitMatrix qr=new com.google.zxing.qrcode.QRCodeWriter().encode(
+        "Transferencia SPEI\\nInstitucion: albo\\nBeneficiario: "+beneficiary+"\\nCLABE: "+clabe,
+        com.google.zxing.BarcodeFormat.QR_CODE,280,280);
+      BluetoothAdapter adapter=BluetoothAdapter.getDefaultAdapter();
+      if(adapter==null)throw new Exception("Bluetooth no disponible");
+      BluetoothDevice device=adapter.getRemoteDevice(mac);
+      socket=device.createRfcommSocketToServiceRecord(SPP);
+      if(Build.VERSION.SDK_INT<31)try{adapter.cancelDiscovery();}catch(SecurityException ignored){}
+      socket.connect();
+      OutputStream out=socket.getOutputStream();
+      out.write(new byte[]{27,64,27,97,1});
+      out.write("EL COSTENO\\nTRANSFERENCIA SPEI\\nBanco: albo\\n\\n".getBytes("US-ASCII"));
+      int width=280,height=280,rowBytes=(width+7)/8;
+      byte[] raster=new byte[rowBytes*height];
+      for(int y=0;y<height;y++)for(int x=0;x<width;x++)if(qr.get(x,y))
+        raster[y*rowBytes+x/8]|=(byte)(0x80>>(x%8));
+      out.write(new byte[]{29,118,48,0,(byte)(rowBytes&255),(byte)(rowBytes>>8),(byte)(height&255),(byte)(height>>8)});
+      out.write(raster);
+      out.write("\\nEscanea para ver los datos\\n".getBytes("US-ASCII"));
+      String safe=java.text.Normalizer.normalize(beneficiary,java.text.Normalizer.Form.NFD).replaceAll("\\\\p{M}+","");
+      out.write(("Beneficiario:\\n"+safe+"\\nCLABE:\\n"+clabe+"\\n\\nGracias por tu compra!\\n").getBytes("US-ASCII"));
+      out.write(new byte[]{27,74,(byte)160});out.flush();
+      toast("QR de transferencia enviado a impresora.");
+    }catch(Exception e){toast("No se pudo imprimir QR: "+e.getMessage());}
+    finally{if(socket!=null)try{socket.close();}catch(Exception ignored){}}
   }
   private void send(String mac, String content, String logoData) {
     BluetoothSocket socket=null;
