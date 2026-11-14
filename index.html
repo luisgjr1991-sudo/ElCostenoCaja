@@ -207,14 +207,14 @@ const transferClabe=$('transferClabe'),transferBeneficiary=$('transferBeneficiar
 transferClabe.value=persistGet('ec_transfer_clabe')||'';
 transferBeneficiary.value=persistGet('ec_transfer_beneficiary')||'';
 $('saveTransferBank').onclick=()=>{
- const clabe=transferClabe.value.replace(/\\s/g,'').trim(),beneficiary=transferBeneficiary.value.trim();
- if(!/^\\d{18}$/.test(clabe)||!beneficiary)return alert('Escribe una CLABE de 18 dígitos y el nombre del beneficiario.');
+ const clabe=transferClabe.value.replace(/\s/g,'').trim(),beneficiary=transferBeneficiary.value.trim();
+ if(!/^\d{18}$/.test(clabe)||!beneficiary)return alert('Escribe una CLABE de 18 dígitos y el nombre del beneficiario.');
  persistSet('ec_transfer_clabe',clabe);persistSet('ec_transfer_beneficiary',beneficiary);
  alert('Datos de transferencia guardados en este dispositivo.');
 };
 $('printTransferQr').onclick=()=>{
  const clabe=persistGet('ec_transfer_clabe')||'',beneficiary=persistGet('ec_transfer_beneficiary')||'';
- if(!/^\\d{18}$/.test(clabe)||!beneficiary){alert('Primero guarda tu CLABE y beneficiario en Ajustes > Impresora.');return;}
+ if(!/^\d{18}$/.test(clabe)||!beneficiary){alert('Primero guarda tu CLABE y beneficiario en Ajustes > Impresora.');return;}
  if(!window.AndroidPrinter||!window.AndroidPrinter.printTransferQr){alert('Esta función requiere la nueva APK Android.');return;}
  window.AndroidPrinter.printTransferQr(clabe,beneficiary);
 };
