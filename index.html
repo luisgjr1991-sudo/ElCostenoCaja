@@ -286,22 +286,33 @@ renderHeader();render();showOpeningWelcome();
  function begin(){
   if(active||!enabled.checked||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   const rect=original.getBoundingClientRect();if(rect.width<30||rect.height<20)return;
-  // Nunca ocultar el logo original antes de comprobar ambas capas.
-  // Una capa ausente o cargada tarde dejaba el sombrero flotando solo.
-  const bodyUrl='./logo_body_animation.png',hatUrl='./logo_hat_animation.png';
+  // Crear las dos capas desde el logo original: máscaras complementarias.
+  // No depender de PNG inexistentes ni duplicar el sombrero.
   if(!splitReady){
    if(stage.dataset.loading==='1')return;
    stage.dataset.loading='1';
-   Promise.all([bodyUrl,hatUrl].map(src=>new Promise((resolve,reject)=>{
-    const img=new Image();img.onload=()=>img.naturalWidth&&img.naturalHeight?resolve():reject(new Error('Capa vacía'));
-    img.onerror=reject;img.src=src;
-   }))).then(()=>{splitReady=true;stage.dataset.loading='0';if(enabled.checked&&document.visibilityState==='visible'&&!active)begin();})
-   .catch(()=>{stage.dataset.loading='0';stage.dataset.failed='1';original.style.visibility='';stage.classList.remove('active');});
+   const source=new Image();source.src=original.currentSrc||original.src;
+   const ready=()=>{
+    const w=source.naturalWidth,h=source.naturalHeight;
+    if(!w||!h){stage.dataset.loading='0';return;}
+    const canvas=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
+    const mask=canvas(),m=mask.getContext('2d');
+    m.fillStyle='white';m.beginPath();
+    m.moveTo(w*.43,h*.30);m.bezierCurveTo(w*.40,h*.12,w*.57,h*.01,w*.77,h*.01);
+    m.bezierCurveTo(w*.96,h*.01,w*1.02,h*.20,w*.99,h*.40);
+    m.bezierCurveTo(w*.94,h*.49,w*.71,h*.46,w*.55,h*.43);
+    m.bezierCurveTo(w*.46,h*.41,w*.43,h*.36,w*.43,h*.30);m.closePath();m.fill();
+    const hCanvas=canvas(),hc=hCanvas.getContext('2d'),bCanvas=canvas(),bc=bCanvas.getContext('2d');
+    hc.drawImage(source,0,0);hc.globalCompositeOperation='destination-in';hc.drawImage(mask,0,0);
+    bc.drawImage(source,0,0);bc.globalCompositeOperation='destination-out';bc.drawImage(mask,0,0);
+    body.dataset.layer=bCanvas.toDataURL('image/png');hat.dataset.layer=hCanvas.toDataURL('image/png');
+    splitReady=true;stage.dataset.loading='0';begin();
+   };
+   if(source.complete)ready();else{source.onload=ready;source.onerror=()=>{stage.dataset.loading='0';}};
    return;
   }
-  if(stage.dataset.failed==='1')return;
   active=true;start=performance.now();
-  body.src=bodyUrl;hat.src=hatUrl;
+  body.src=body.dataset.layer;hat.src=hat.dataset.layer;
   for(const el of [body,hat]){el.style.width=rect.width+'px';el.style.height=rect.height+'px';el.style.visibility='visible';}
   stage.classList.add('active');original.style.visibility='hidden';
   const W=innerWidth,H=innerHeight,ow=rect.width,oh=rect.height;
