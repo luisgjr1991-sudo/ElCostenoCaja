@@ -35,6 +35,7 @@ public class MainActivity extends Activity {
 
   @Override public void onCreate(Bundle b) {
     super.onCreate(b);
+    audioThread.start(); audioHandler = new Handler(audioThread.getLooper());
     web = new WebView(this);
     web.getSettings().setJavaScriptEnabled(true);
     web.getSettings().setDomStorageEnabled(true);
@@ -83,6 +84,8 @@ public class MainActivity extends Activity {
   }
   private void toast(String s) { ui.post(() -> Toast.makeText(this, s, Toast.LENGTH_LONG).show()); }
 
+  private final HandlerThread audioThread = new HandlerThread("CostenoAudio");
+  private Handler audioHandler;
   private ToneGenerator cashTone;
   private final Object cashAudioLock = new Object();
   private int cashSoundSequence = 0;
@@ -90,7 +93,7 @@ public class MainActivity extends Activity {
     final String[] parts=kind.split(":");
     final String event=parts[0];
     final boolean modern=parts.length>1 && "modern".equals(parts[1]);
-    ui.post(() -> {
+    audioHandler.post(() -> {
       if(vibration)try {
         android.os.Vibrator vib=(android.os.Vibrator)getSystemService(VIBRATOR_SERVICE);
         if(vib!=null && vib.hasVibrator())vib.vibrate(android.os.VibrationEffect.createOneShot("tap".equals(event)?15:65,android.os.VibrationEffect.DEFAULT_AMPLITUDE));
@@ -113,7 +116,7 @@ public class MainActivity extends Activity {
         int delay=0;
         for(int i=0;i<notes.length;i++){
           final int tone=notes[i],ms=durations[i];
-          ui.postDelayed(()->{synchronized(cashAudioLock){if(sequence==cashSoundSequence && cashTone!=null)try{cashTone.startTone(tone,ms);}catch(Exception ignored){}}},delay);
+          audioHandler.postDelayed(()->{synchronized(cashAudioLock){if(sequence==cashSoundSequence && cashTone!=null)try{cashTone.startTone(tone,ms);}catch(Exception ignored){}}},delay);
           delay+=ms+55;
         }
       }
