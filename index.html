@@ -286,10 +286,23 @@ renderHeader();render();showOpeningWelcome();
  function begin(){
   if(active||!enabled.checked||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   const rect=original.getBoundingClientRect();if(rect.width<30||rect.height<20)return;
+  // Nunca ocultar el logo original antes de comprobar ambas capas.
+  // Una capa ausente o cargada tarde dejaba el sombrero flotando solo.
+  const bodyUrl='./logo_body_animation.png',hatUrl='./logo_hat_animation.png';
+  if(!splitReady){
+   if(stage.dataset.loading==='1')return;
+   stage.dataset.loading='1';
+   Promise.all([bodyUrl,hatUrl].map(src=>new Promise((resolve,reject)=>{
+    const img=new Image();img.onload=()=>img.naturalWidth&&img.naturalHeight?resolve():reject(new Error('Capa vacía'));
+    img.onerror=reject;img.src=src;
+   }))).then(()=>{splitReady=true;stage.dataset.loading='0';if(enabled.checked&&document.visibilityState==='visible'&&!active)begin();})
+   .catch(()=>{stage.dataset.loading='0';stage.dataset.failed='1';original.style.visibility='';stage.classList.remove('active');});
+   return;
+  }
+  if(stage.dataset.failed==='1')return;
   active=true;start=performance.now();
-  const url=original.currentSrc||original.src;
-  body.src='./logo_body_animation.png';hat.src='./logo_hat_animation.png';hat.style.visibility='visible';
-  for(const el of [body,hat]){el.style.width=rect.width+'px';el.style.height=rect.height+'px';}
+  body.src=bodyUrl;hat.src=hatUrl;
+  for(const el of [body,hat]){el.style.width=rect.width+'px';el.style.height=rect.height+'px';el.style.visibility='visible';}
   stage.classList.add('active');original.style.visibility='hidden';
   const W=innerWidth,H=innerHeight,ow=rect.width,oh=rect.height;
   const floor=Math.max(0,H-oh-75),x0=rect.left,y0=rect.top;
