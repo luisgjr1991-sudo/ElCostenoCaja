@@ -277,7 +277,7 @@ renderHeader();render();showOpeningWelcome();
  const enabled=document.getElementById('logoAnimationEnabled'),seconds=document.getElementById('logoIdleSeconds');
  const cfg=load('ec_logo_idle_animation',{enabled:false,seconds:2});
  enabled.checked=!!cfg.enabled;seconds.value=String([2,5,10,15,30,60].includes(Number(cfg.seconds))?cfg.seconds:2);
- let idleTimer=0,frame=0,returnTimer=0,active=false,lastActivity=Date.now(),start=0;
+ let idleTimer=0,frame=0,returnTimer=0,active=false,lastActivity=Date.now(),start=0,animationCycle=0;
  function stop(){clearTimeout(idleTimer);clearTimeout(returnTimer);if(frame)cancelAnimationFrame(frame);frame=0;active=false;stage.classList.remove('active');original.style.visibility='';body.style.transform='';hat.style.transform='';}
  function schedule(){clearTimeout(idleTimer);if(!enabled.checked)return;let wait=Math.max(200,Number(seconds.value)*1000-(Date.now()-lastActivity));idleTimer=setTimeout(()=>{if(!active&&enabled.checked&&document.visibilityState==='visible'&&document.getElementById('caja')&&!document.getElementById('caja').classList.contains('hidden'))begin();},wait)}
  function activity(){lastActivity=Date.now();if(active)stop();schedule();}
@@ -291,45 +291,66 @@ renderHeader();render();showOpeningWelcome();
   stage.classList.add('active');original.style.visibility='hidden';
   const W=innerWidth,H=innerHeight,ow=rect.width,oh=rect.height;
   const floor=Math.max(0,H-oh-75),x0=rect.left,y0=rect.top;
+  // Cada activación elige una coreografía distinta, sin saltos entre fases.
+  const style=animationCycle++%4;
+  const landAt=1.18,playUntil=6.55,endAt=7.65;
+  const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+  const smooth=p=>{p=clamp(p,0,1);return p*p*(3-2*p)};
+  const mix=(a,b,p)=>a+(b-a)*p;
+  const bounce=(u,period)=>Math.max(0,Math.sin(Math.PI*((u%period)/period)));
+  function playPose(u){
+   const period=[1.05,.82,1.25,.95][style],hop=Math.pow(bounce(u,period),.88);
+   const impact=Math.pow(Math.max(0,1-hop),8);
+   let travel=0,depth=1,spin=0,height=0;
+   if(style===0){ // brincos de lado a lado
+    travel=.38*Math.sin(u*1.18)+.06*Math.sin(u*2.5);
+    depth=1+.15*Math.sin(u*1.9);spin=12*Math.sin(u*4);
+    height=H*.18;
+   }else if(style===1){ // giros alegres y saltos rápidos
+    travel=.31*Math.sin(u*1.65);depth=.94+.22*(.5+.5*Math.sin(u*2.4));
+    spin=22*Math.sin(u*3.5)+8*Math.sin(u*7);height=H*.23;
+   }else if(style===2){ // acercarse y alejarse como cámara 3D
+    travel=.19*Math.sin(u*1.2);depth=.78+.70*(.5+.5*Math.sin(u*1.75-1.1));
+    spin=8*Math.sin(u*3);height=H*.15;
+   }else{ // saltos traviesos en zigzag
+    travel=.31*Math.sin(u*2.15)+.08*Math.sin(u*4.2);
+    depth=.95+.29*(.5+.5*Math.cos(u*1.7));spin=16*Math.sin(u*5.3);
+    height=H*.21;
+   }
+   const sx=depth*(1+.22*impact+.11*hop);
+   const sy=depth*(1-.21*impact+.12*hop);
+   const center=W*.5+travel*Math.max(0,W-ow);
+   const x=clamp(center-ow/2,8,Math.max(8,W-ow*depth-8));
+   // El contacto con el suelo se mantiene fijo entre caída y primer rebote.
+   const y=floor-height*hop;
+   return {x,y,sx,sy,angle:spin};
+  }
   function tick(now){
    if(!active)return;
    const t=(now-start)/1000;
-   if(t>=7.6){stop();lastActivity=Date.now();schedule();return;}
-   let x=x0,y=y0,sx=1,sy=1,angle=0,hx=x0,hy=y0,ha=0;
-   if(t<.45){angle=Math.sin(t*25)*9*(t/.45);}
-   else if(t<1.18){
-    const p=(t-.45)/.73;y=y0+(floor-y0)*p*p;angle=10*p;
-    if(p>.87){const k=(p-.87)/.13;sx=1+.26*k;sy=1-.31*k;}
-   }else if(t<6.55){
-    // Saltos juguetones con profundidad: acercarse y alejarse de la pantalla.
-    const u=t-1.18,cycle=u/0.98,phase=cycle%1,hop=Math.pow(Math.max(0,Math.sin(Math.PI*phase)),0.8);
-    const depth=0.94+0.49*(0.5+0.5*Math.sin(u*1.85-1.1));
-    const flight=1+0.09*Math.sin(u*3.2);
-    const zoom=depth*flight;
-    const travel=Math.sin(u*1.43-1.1)*0.40+Math.sin(u*2.57)*0.09;
-    const desiredX=W*.5+travel*(W-ow*.65);
-    x=Math.max(ow*(zoom-1)*.5+8,Math.min(W-ow*(zoom+1)*.5-8,desiredX));
-    y=Math.max(75,Math.min(floor-10,floor-(H*.16+H*.07*Math.sin(u*1.2)**2)*hop));
-    const squash=Math.max(0,1-hop)*Math.pow(Math.max(0,Math.cos(Math.PI*phase)),8);
-    sx=zoom*(1+0.27*squash+0.10*hop);
-    sy=zoom*(1-0.24*squash+0.12*hop);
-    angle=Math.sin(u*4.2)*13+Math.sin(u*7.7)*5;
-    hx=x;hy=y;ha=angle;
+   if(t>=endAt){stop();lastActivity=Date.now();schedule();return;}
+   let pose={x:x0,y:y0,sx:1,sy:1,angle:0};
+   if(t<.45){
+    pose.angle=Math.sin(t*25)*9*(t/.45);
+   }else if(t<landAt){
+    const p=(t-.45)/(landAt-.45);
+    pose.y=mix(y0,floor,p*p);
+    pose.angle=10*(1-smooth(p));
+    // La deformación de impacto empieza justo al tocar el piso, no antes.
+    const impact=smooth((p-.88)/.12);
+    pose.sx=1+.22*impact;pose.sy=1-.21*impact;
+   }else if(t<playUntil){
+    const u=t-landAt,base=playPose(u);
+    // Transición continua: la primera pose del juego parte exactamente del aterrizaje.
+    const enter=smooth(u/.42);
+    const landing={x:x0,y:floor,sx:1.22,sy:.79,angle:0};
+    pose={x:mix(landing.x,base.x,enter),y:mix(landing.y,base.y,enter),sx:mix(landing.sx,base.sx,enter),sy:mix(landing.sy,base.sy,enter),angle:mix(landing.angle,base.angle,enter)};
    }else{
-    const p=Math.min(1,(t-6.55)/1.05),e=1-Math.pow(1-p,3);
-    const u=6.55-1.18,depth=0.94+0.49*(0.5+0.5*Math.sin(u*1.85-1.1)),zoom=depth*(1+0.09*Math.sin(u*3.2));
-    const travel=Math.sin(u*1.43-1.1)*0.40+Math.sin(u*2.57)*0.09;
-    const desiredX=W*.5+travel*(W-ow*.65);
-    const lastX=Math.max(ow*(zoom-1)*.5+8,Math.min(W-ow*(zoom+1)*.5-8,desiredX));
-    const phase=(u/0.98)%1,hop=Math.pow(Math.max(0,Math.sin(Math.PI*phase)),0.8);
-    const lastY=Math.max(75,Math.min(floor-10,floor-(H*.16+H*.07*Math.sin(u*1.2)**2)*hop));
-    x=lastX+(x0-lastX)*e;y=lastY+(y0-lastY)*e;
-    sx=zoom+(1-zoom)*e;sy=sx;angle=(1-e)*(Math.sin(u*4.2)*13+Math.sin(u*7.7)*5);
+    const p=smooth((t-playUntil)/(endAt-playUntil));
+    const last=playPose(playUntil-landAt);
+    pose={x:mix(last.x,x0,p),y:mix(last.y,y0,p),sx:mix(last.sx,1,p),sy:mix(last.sy,1,p),angle:mix(last.angle,0,p)};
    }
-   if(t<1.18){hx=x0;hy=y0;ha=angle*.6;}
-   if(t>=6.55){hx=x+Math.sin(t*10)*(1-(t-6.55)/1.05)*12;hy=y;ha=angle;}
-   body.style.transform='translate3d('+x+'px,'+y+'px,0) rotate('+angle+'deg) scale('+sx+','+sy+')';
-   hat.style.transform='translate3d('+hx+'px,'+hy+'px,0) rotate('+ha+'deg)';
+   body.style.transform='translate3d('+pose.x+'px,'+pose.y+'px,0) rotate('+pose.angle+'deg) scale('+pose.sx+','+pose.sy+')';
    frame=requestAnimationFrame(tick);
   }
   frame=requestAnimationFrame(tick);
