@@ -104,6 +104,8 @@ body{padding-bottom:calc(132px + env(safe-area-inset-bottom,0px))!important}
 /* Animación de inactividad: capa visual, nunca captura los toques de caja. */
 #logoIdleStage{position:fixed;inset:0;z-index:10000;pointer-events:none;overflow:hidden;visibility:hidden}
 #logoIdleStage.active{visibility:visible}
+body.logo-idle-playing #headerLogo,body.logo-idle-playing.welcome-done #headerLogo,body.logo-idle-playing.welcome-arrived #headerLogo{opacity:0!important;visibility:hidden!important}
+#logoIdleStage:not(.active) #logoIdleBody,#logoIdleStage:not(.active) #logoIdleHat{visibility:hidden!important}
 #logoIdleBody,#logoIdleHat{position:absolute;top:0;left:0;transform-origin:50% 85%;will-change:transform;filter:drop-shadow(0 5px 5px #0007)}
 #logoIdleBody{clip-path:none}
 #logoIdleHat{display:block;transform-origin:70% 35%}
@@ -135,14 +137,14 @@ document.addEventListener('click',e=>{let b=e.target.closest('button');if(!b)ret
 $('invoice').onchange=()=>{if(!$('invoice').checked)$('withholding').checked=false;render()};$('withholding').onchange=render;$('cash').oninput=render;$('changeToggle').onclick=()=>$('payment').classList.toggle('hidden');$('reset').onclick=()=>{if(!confirm('¿Borrar esta cuenta sin registrar venta?'))return;clear()};function clear(){selectedCardType='';$('cardTypeDialog').classList.add('hidden');selectedPayMethod='';selectPayMethod('efectivo');selectPayMethod('efectivo');cart={};$('invoice').checked=false;$('withholding').checked=false;$('cash').value='';$('payment').classList.add('hidden');render()}
 function receipt(s){let isCut=s.kind==='cut';if(isCut)return `<div class="center"><b>EL COSTEÑO</b><br>CORTE DE CAJA<br>${esc(s.label)}</div><div class="dash"></div><div>Fecha: ${new Date().toLocaleString('es-MX')}</div><div class="dash"></div><div class="rline"><span>Ventas</span><b>${s.count}</b></div>${s.lines.map(x=>`<div class="rline"><span>${esc(x.name)} (${x.qty})</span><span>${fmt(x.amount)}</span></div>`).join('')}<div class="dash"></div><div class="rline big"><span>TOTAL</span><span>${fmt(s.amount)}</span></div>`;return `<div class="center">${logo?`<img alt="Logo El Costeño" src="${logo}">`:'<b>TACOS DE CANASTA<br>EL COSTEÑO</b>'}</div><div class="dash"></div>${fiscalHtml(s)}<div class="center bold">NOTA DE CONSUMO</div><div class="rline"><span>Fecha: ${new Date(s.date).toLocaleDateString('es-MX')}</span><span>${new Date(s.date).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}</span></div><div>Folio: ${String(s.folio).padStart(6,'0')}</div><div class="dash"></div><table><thead><tr><th>Cant.</th><th>Descripción</th><th>Importe</th></tr></thead><tbody>${s.items.map(x=>`<tr><td>${x.qty}</td><td>${esc(x.name)}</td><td>${fmt(x.qty*x.price)}</td></tr>`).join('')}</tbody></table><div class="dash"></div>${s.invoice?`<div class="rline"><span>Subtotal</span><span>${fmt(s.subtotal)}</span></div><div class="rline"><span>IVA 16%</span><span>${fmt(s.tax)}</span></div>${s.retention?`<div class="rline"><span>Ret. ISR 1.25% (-)</span><span>-${fmt(s.retention)}</span></div>`:""} `:''}<div class="rline big"><span>TOTAL</span><span>${fmt(s.amount)}</span></div>${s.paymentMethod==='tarjeta'?`<div class="rline"><span>Pago con tarjeta</span><b>${s.cardType==='credito'?'CRÉDITO':s.cardType==='debito'?'DÉBITO':'TARJETA'}</b></div>`:'<div class="rline"><span>Pago</span><b>EFECTIVO</b></div>'}<div class="dash"></div><div class="center">${esc(ticketFooter)}</div>`}
 function showTicket(s){lastTicket=s;$('sendTicketAccountant').classList.toggle('hidden',!s.invoice);$('receipt').innerHTML=receipt(s);$('ticketPanel').classList.remove('hidden');$('ticketPanel').scrollIntoView({behavior:'smooth'})}
-let audioContext=null;const soundSettings=load('ec_sound_settings',{enabled:true,style:'classic',volume:50});function playSound(kind='success'){
+let audioContext=null;document.addEventListener('pointerdown',()=>{try{if(audioContext&&audioContext.state==='suspended')audioContext.resume().catch(()=>{});}catch(e){}},{capture:true});const soundSettings=load('ec_sound_settings',{enabled:true,style:'classic',volume:50});function playSound(kind='success'){
  // Android handles vibration; WebAudio handles the distinct cash-register sounds.
  if(window.AndroidCashAudio&&soundSettings.vibration){try{window.AndroidCashAudio.play(kind+':'+(soundSettings.style||'classic'),0,true)}catch(e){}}
  if(soundSettings.vibration&&navigator.vibrate){try{navigator.vibrate(kind==='error'?[100,60,100]:kind==='tap'?12:70)}catch(e){}}
  if(!soundSettings.enabled||Number(soundSettings.volume)<=0)return;
  try{
   const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
-  audioContext=audioContext||new AC();if(audioContext.state==='suspended')audioContext.resume();
+  audioContext=audioContext||new AC();if(audioContext.state==='suspended')audioContext.resume().catch(()=>{});
   const ctx=audioContext,t=ctx.currentTime,vol=Math.max(0,Math.min(1,Number(soundSettings.volume)/100));
   function note(freq,at,duration,gain,type='sine',endFreq){
    const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;
@@ -181,7 +183,7 @@ document.addEventListener('pointerdown',e=>{
  const b=e.target.closest('button');
  if(!b||b.disabled||['testSound','testProductSound','testNavigationSound','testWarningSound'].includes(b.id))return;
  if(['charge','chargePrint','chargeSendAccountant'].includes(b.id))return;
- if(b.matches('[data-add],[data-minus]'))playSound('product');
+ if(b.matches('[data-add],[data-minus],.product')||b.id==='addCustomTacos')playSound('product');
  else if(b.matches('[data-tab]')||['backToHome','backToPrevious','settingsBack','trashClose'].includes(b.id))playSound('navigate');
  else if(b.matches('[data-delete-sale],[data-purge]')||['clearHistory','emergencyUndo'].includes(b.id))playSound('warning');
  else playSound('tap');
@@ -279,7 +281,7 @@ renderHeader();render();showOpeningWelcome();
  const cfg=load('ec_logo_idle_animation',{enabled:true,seconds:5});
  enabled.checked=!!cfg.enabled;seconds.value=String([2,5,10,15,30,60].includes(Number(cfg.seconds))?cfg.seconds:2);
  let idleTimer=0,frame=0,returnTimer=0,active=false,lastActivity=Date.now(),start=0,animationCycle=0,splitReady=false;
- function stop(){clearTimeout(idleTimer);clearTimeout(returnTimer);if(frame)cancelAnimationFrame(frame);frame=0;active=false;stage.classList.remove('active');original.style.visibility='';body.style.transform='';hat.style.transform='';}
+ function stop(){clearTimeout(idleTimer);clearTimeout(returnTimer);if(frame)cancelAnimationFrame(frame);frame=0;active=false;stage.classList.remove('active');document.body.classList.remove('logo-idle-playing');original.style.visibility='';body.style.transform='';hat.style.transform='';}
  function schedule(){clearTimeout(idleTimer);if(!enabled.checked)return;let wait=Math.max(200,Number(seconds.value)*1000-(Date.now()-lastActivity));idleTimer=setTimeout(()=>{if(!active&&enabled.checked&&document.visibilityState==='visible'&&document.getElementById('caja')&&!document.getElementById('caja').classList.contains('hidden'))begin();},wait)}
  function activity(){lastActivity=Date.now();if(active)stop();schedule();}
  // Separa el sombrero en dos lienzos transparentes con una máscara curva,
@@ -320,7 +322,7 @@ renderHeader();render();showOpeningWelcome();
   active=true;start=performance.now();
   body.src=body.dataset.layer;if(hat.dataset.layer){hat.src=hat.dataset.layer;hat.style.display='block'}else{hat.style.display='none'};
   for(const el of [body,hat]){el.style.width=rect.width+'px';el.style.height=rect.height+'px';el.style.visibility='visible';}
-  stage.classList.add('active');original.style.visibility='hidden';
+  document.body.classList.add('logo-idle-playing');original.style.visibility='hidden';stage.classList.add('active');
   const W=innerWidth,H=innerHeight,ow=rect.width,oh=rect.height;
   const floor=Math.max(0,H-oh-75),x0=rect.left,y0=rect.top;
   // Cada activación elige una coreografía distinta, sin saltos entre fases.
