@@ -22,7 +22,7 @@ jobs:
           cp manifest.webmanifest app/src/main/assets/manifest.webmanifest
           cp icon-*.png app/src/main/assets/
           find . -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.webp' -o -iname '*.svg' -o -iname '*.js' -o -iname '*.css' \) -exec cp -t app/src/main/assets/ {} +
-          for asset in file_00000000277c82128c9cdeb4bae0c5ea.png file_000000002e348212a1fdaa37bd6a866d.png file_00000000a8b88212877a593c1893ae10.png; do
+          for asset in file_00000000277c82128c9cdeb4bae0c5ea.png file_00000000a8b88212877a593c1893ae10.png; do
             if [ ! -f "$asset" ]; then echo "ERROR: Falta recurso original $asset. No publicar APK incompleta."; exit 1; fi
             cp "$asset" app/src/main/assets/
           done
