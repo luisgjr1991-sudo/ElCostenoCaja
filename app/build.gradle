@@ -27,3 +27,6 @@ tasks.register('prepareBrandLogo') {
     }
 }
 tasks.named('preBuild').configure { dependsOn tasks.named('prepareBrandLogo') }
+
+
+dependencies { implementation 'com.google.zxing:core:3.5.3' }
