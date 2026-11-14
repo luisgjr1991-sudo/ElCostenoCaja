@@ -352,7 +352,7 @@ public class MainActivity extends Activity {
   }
   private com.google.zxing.common.BitMatrix transferQrMatrix(String clabe,String beneficiary) throws com.google.zxing.WriterException {
     return new com.google.zxing.qrcode.QRCodeWriter().encode(
-      "Transferencia SPEI\\nInstitucion: albo\\nBeneficiario: "+beneficiary+"\\nCLABE: "+clabe,
+      "Transferencia SPEI\nInstitucion: albo\nBeneficiario: "+beneficiary+"\nCLABE: "+clabe,
       com.google.zxing.BarcodeFormat.QR_CODE,280,280);
   }
   private void sendTransferQr(String mac,String clabe,String beneficiary) {
