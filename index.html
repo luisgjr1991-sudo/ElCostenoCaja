@@ -196,7 +196,7 @@ $('restoreTicketLogo').onclick=()=>{if(!confirm('¿Restaurar el logo original bl
 const settingsGroups=[['🎨','Personalizar',[3,4]],['🖨️','Impresora',[6,11]],['🖼️','Logotipos',[7,8,9]],['🧾','Tickets',[9]],['🏷️','Productos',[5]],['📲','WhatsApp',[1]],['🏛️','Datos fiscales',[0]],['🔊','Sonidos',[2]],['💾','Respaldos',[9]],['🎩','Animación',[10]]];
 // Mantener el orden histórico de las tarjetas: la nueva animación va al final.
 $('settingsOriginal').appendChild($('logoAnimationSettings'));
-$('settingsOriginal').insertAdjacentHTML('beforeend',"<div class=\"card\" id=\"transferBankSettings\"><h2>💙 Transferencias albo</h2><p class=\"muted\">Los datos se guardan únicamente en este dispositivo. El QR no incluye importe ni realiza un cobro.</p><label for=\"transferClabe\">CLABE de 18 dígitos</label><input id=\"transferClabe\" type=\"text\" inputmode=\"numeric\" maxlength=\"18\" autocomplete=\"off\" placeholder=\"18 dígitos\"><label for=\"transferBeneficiary\">Beneficiario</label><input id=\"transferBeneficiary\" type=\"text\" autocomplete=\"off\" placeholder=\"Nombre del titular\"><button id=\"saveTransferBank\" type=\"button\" class=\"primary full\">Guardar datos para QR</button></div>");
+$('settingsOriginal').insertAdjacentHTML('beforeend',"<div class=\"card\" id=\"transferBankSettings\"><h2>💙 Transferencias albo</h2><p class=\"muted\">Los datos se guardan únicamente en este dispositivo. El QR no incluye importe ni realiza un cobro.</p><label for=\"transferClabe\">CLABE de 18 dígitos</label><input id=\"transferClabe\" type=\"text\" inputmode=\"numeric\" maxlength=\"18\" autocomplete=\"off\" placeholder=\"18 dígitos\"><label for=\"transferBeneficiary\">Beneficiario</label><input id=\"transferBeneficiary\" type=\"text\" autocomplete=\"off\" placeholder=\"Nombre del titular\"><button id=\"saveTransferBank\" type=\"button\" class=\"primary full\">Guardar datos para QR</button><button id=\"previewTransferQr\" type=\"button\" class=\"full\">👁️ Vista previa ticket QR</button><div id=\"transferQrPreview\" class=\"hidden\" style=\"margin-top:12px;background:white;color:black;padding:12px;text-align:center;font-family:monospace\"><strong>EL COSTEÑO</strong><div>TRANSFERENCIA SPEI</div><div>Banco: albo</div><img id=\"transferQrPreviewImage\" style=\"width:210px;height:210px;display:block;margin:8px auto\" alt=\"QR\"><div>Escanea para ver los datos</div><p>Beneficiario:</p><div id=\"transferQrPreviewName\" style=\"overflow-wrap:anywhere\"></div><p>CLABE:</p><strong id=\"transferQrPreviewClabe\"></strong><p>Gracias por tu compra!</p><button id=\"closeTransferQrPreview\" type=\"button\">Cerrar</button></div></div>");
 const originalSettingsCards=Array.from($('settingsOriginal').children);const cardSlots=originalSettingsCards.map(()=>document.createComment('posición de ajuste'));
 // Los controles permanecen en el DOM para que sus eventos se inicialicen correctamente.
 const settingsNames=['Datos fiscales','WhatsApp','Sonidos','Temas','Fondo','Productos','Impresora','Logo superior','Icono','Ticket y respaldo','Animación'];
@@ -213,6 +213,18 @@ $('saveTransferBank').onclick=()=>{
  persistSet('ec_transfer_clabe',clabe);persistSet('ec_transfer_beneficiary',beneficiary);
  alert('Datos de transferencia guardados en este dispositivo.');
 };
+window.transferQrPreviewReady=(data)=>{
+ if(!data||!data.startsWith('data:image/png;base64,')){alert('No se pudo generar el QR');return;}
+ $('transferQrPreviewImage').src=data;$('transferQrPreview').classList.remove('hidden');
+};
+$('previewTransferQr').onclick=()=>{
+ const clabe=transferClabe.value.replace(/\s/g,'').trim(),beneficiary=transferBeneficiary.value.trim();
+ if(!/^\d{18}$/.test(clabe)||!beneficiary){alert('Escribe CLABE de 18 dígitos y beneficiario');return;}
+ $('transferQrPreviewName').textContent=beneficiary;$('transferQrPreviewClabe').textContent=clabe;
+ if(window.AndroidPrinter&&window.AndroidPrinter.previewTransferQr)window.AndroidPrinter.previewTransferQr(clabe,beneficiary);
+ else alert('La vista previa necesita la nueva APK');
+};
+$('closeTransferQrPreview').onclick=()=>$('transferQrPreview').classList.add('hidden');
 $('printTransferQr').onclick=()=>{
  const clabe=persistGet('ec_transfer_clabe')||'',beneficiary=persistGet('ec_transfer_beneficiary')||'';
  if(!/^\d{18}$/.test(clabe)||!beneficiary){alert('Primero guarda tu CLABE y beneficiario en Ajustes > Impresora.');return;}
