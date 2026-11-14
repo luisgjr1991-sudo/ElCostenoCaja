@@ -137,6 +137,20 @@ public class MainActivity extends Activity {
     @JavascriptInterface public void downloadAndShareCutPdf(String json,String number) { ui.post(() -> saveCutPdf(json,true,number)); }
     @JavascriptInterface public void choosePrinter() { ui.post(() -> selectPrinter()); }
     @JavascriptInterface public void createShortcut(String data) { ui.post(() -> pinShortcut(data)); }
+    @JavascriptInterface public void previewTransferQr(String clabe,String beneficiary) {
+      if(clabe==null||!clabe.matches("[0-9]{18}")||beneficiary==null||beneficiary.trim().isEmpty())return;
+      new Thread(() -> {
+        try {
+          com.google.zxing.common.BitMatrix matrix=transferQrMatrix(clabe,beneficiary);
+          Bitmap bitmap=Bitmap.createBitmap(280,280,Bitmap.Config.ARGB_8888);
+          for(int y=0;y<280;y++)for(int x=0;x<280;x++)bitmap.setPixel(x,y,matrix.get(x,y)?Color.BLACK:Color.WHITE);
+          ByteArrayOutputStream bytes=new ByteArrayOutputStream();
+          bitmap.compress(Bitmap.CompressFormat.PNG,100,bytes);bitmap.recycle();
+          String data="data:image/png;base64,"+android.util.Base64.encodeToString(bytes.toByteArray(),android.util.Base64.NO_WRAP);
+          ui.post(()->web.evaluateJavascript("window.transferQrPreviewReady("+JSONObject.quote(data)+")",null));
+        }catch(Exception e){toast("Error de vista previa: "+e.getMessage());}
+      }).start();
+    }
     @JavascriptInterface public void printTransferQr(String clabe, String beneficiary) {
       ui.post(() -> {
         if(clabe==null || !clabe.matches("[0-9]{18}") || beneficiary==null || beneficiary.trim().isEmpty()) {
@@ -336,12 +350,15 @@ public class MainActivity extends Activity {
     bitmap.recycle();
     if(bitmap!=original)original.recycle();
   }
+  private com.google.zxing.common.BitMatrix transferQrMatrix(String clabe,String beneficiary) throws com.google.zxing.WriterException {
+    return new com.google.zxing.qrcode.QRCodeWriter().encode(
+      "Transferencia SPEI\\nInstitucion: albo\\nBeneficiario: "+beneficiary+"\\nCLABE: "+clabe,
+      com.google.zxing.BarcodeFormat.QR_CODE,280,280);
+  }
   private void sendTransferQr(String mac,String clabe,String beneficiary) {
     BluetoothSocket socket=null;
     try {
-      com.google.zxing.common.BitMatrix qr=new com.google.zxing.qrcode.QRCodeWriter().encode(
-        "Transferencia SPEI\nInstitucion: albo\nBeneficiario: "+beneficiary+"\nCLABE: "+clabe,
-        com.google.zxing.BarcodeFormat.QR_CODE,280,280);
+      com.google.zxing.common.BitMatrix qr=transferQrMatrix(clabe,beneficiary);
       BluetoothAdapter adapter=BluetoothAdapter.getDefaultAdapter();
       if(adapter==null)throw new Exception("Bluetooth no disponible");
       BluetoothDevice device=adapter.getRemoteDevice(mac);
