@@ -275,7 +275,7 @@ renderHeader();render();showOpeningWelcome();
 (function(){
  const stage=document.getElementById('logoIdleStage'),body=document.getElementById('logoIdleBody'),hat=document.getElementById('logoIdleHat'),original=document.getElementById('headerLogo');
  const enabled=document.getElementById('logoAnimationEnabled'),seconds=document.getElementById('logoIdleSeconds');
- const cfg=load('ec_logo_idle_animation',{enabled:false,seconds:2});
+ const cfg=load('ec_logo_idle_animation',{enabled:true,seconds:5});
  enabled.checked=!!cfg.enabled;seconds.value=String([2,5,10,15,30,60].includes(Number(cfg.seconds))?cfg.seconds:2);
  let idleTimer=0,frame=0,returnTimer=0,active=false,lastActivity=Date.now(),start=0,animationCycle=0,splitReady=false;
  function stop(){clearTimeout(idleTimer);clearTimeout(returnTimer);if(frame)cancelAnimationFrame(frame);frame=0;active=false;stage.classList.remove('active');original.style.visibility='';body.style.transform='';hat.style.transform='';}
@@ -305,14 +305,19 @@ renderHeader();render();showOpeningWelcome();
     const hCanvas=canvas(),hc=hCanvas.getContext('2d'),bCanvas=canvas(),bc=bCanvas.getContext('2d');
     hc.drawImage(source,0,0);hc.globalCompositeOperation='destination-in';hc.drawImage(mask,0,0);
     bc.drawImage(source,0,0);bc.globalCompositeOperation='destination-out';bc.drawImage(mask,0,0);
-    body.dataset.layer=bCanvas.toDataURL('image/png');hat.dataset.layer=hCanvas.toDataURL('image/png');
+    try {
+     body.dataset.layer=bCanvas.toDataURL('image/png');hat.dataset.layer=hCanvas.toDataURL('image/png');
+    } catch(e) {
+     // WebView may forbid canvas readback. Fall back to intact logo, never freeze.
+     body.dataset.layer=source.src;hat.dataset.layer='';
+    }
     splitReady=true;stage.dataset.loading='0';begin();
    };
    if(source.complete)ready();else{source.onload=ready;source.onerror=()=>{stage.dataset.loading='0';}};
    return;
   }
   active=true;start=performance.now();
-  body.src=body.dataset.layer;hat.src=hat.dataset.layer;
+  body.src=body.dataset.layer;if(hat.dataset.layer){hat.src=hat.dataset.layer;hat.style.display='block'}else{hat.style.display='none'};
   for(const el of [body,hat]){el.style.width=rect.width+'px';el.style.height=rect.height+'px';el.style.visibility='visible';}
   stage.classList.add('active');original.style.visibility='hidden';
   const W=innerWidth,H=innerHeight,ow=rect.width,oh=rect.height;
