@@ -290,8 +290,9 @@ renderHeader();render();showOpeningWelcome();
     const make=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c};
     const base=make(),cap=make(),bc=base.getContext('2d'),hc=cap.getContext('2d');
     bc.drawImage(im,0,0);hc.drawImage(im,0,0);
-    // La zona del sombrero está en la parte superior derecha del logotipo.
-    const outline=c=>{c.beginPath();c.moveTo(w*.34,h*.04);c.bezierCurveTo(w*.57,-h*.05,w*.85,-h*.04,w*.95,h*.19);c.bezierCurveTo(w*1.04,h*.33,w*1.03,h*.52,w*.95,h*.58);c.bezierCurveTo(w*.75,h*.55,w*.57,h*.43,w*.35,h*.47);c.bezierCurveTo(w*.28,h*.41,w*.27,h*.27,w*.34,h*.04);c.closePath()};
+    // Contorno medido sobre el PNG original 1536x1024, no un recorte rectangular.
+    const points=[[475,255],[487,212],[518,181],[569,160],[635,148],[719,148],[816,161],[906,186],[976,96],[1031,37],[1090,12],[1145,10],[1201,42],[1240,95],[1275,178],[1294,266],[1367,299],[1440,341],[1491,402],[1510,465],[1490,524],[1450,565],[1393,590],[1331,593],[1260,572],[1190,544],[1114,508],[1045,468],[975,429],[902,404],[834,393],[790,412],[736,416],[675,406],[610,401],[552,381],[514,350],[490,317]];
+    const outline=c=>{c.beginPath();points.forEach(([px,py],i)=>{const x=px*w/1536,y=py*h/1024;if(i)c.lineTo(x,y);else c.moveTo(x,y)});c.closePath()};
     hc.globalCompositeOperation='destination-in';outline(hc);hc.fill();
     bc.globalCompositeOperation='destination-out';outline(bc);bc.fill();
     done(base.toDataURL('image/png'),cap.toDataURL('image/png'));
@@ -374,7 +375,7 @@ renderHeader();render();showOpeningWelcome();
     const u=t-landAt,catchAt=2.65;
     if(u<catchAt){
      const drift=u/catchAt;
-     const floatY=floor-Math.min(H*.31,155)-Math.sin(drift*Math.PI)*Math.min(H*.19,110)+drift*Math.min(H*.17,85);
+     const floatY=floor-Math.min(H*.30,150)-Math.sin(drift*Math.PI)*Math.min(H*.13,80)+drift*Math.min(H*.16,85);
      const floatX=x0+Math.sin(u*2.8)*Math.min(W*.14,70)+u*15;
      // Despegue suave desde la cabeza y descenso con oscilación lenta.
      const lift=smooth(u/.48);
