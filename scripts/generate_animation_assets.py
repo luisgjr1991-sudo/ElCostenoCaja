@@ -1,19 +1,70 @@
-from PIL import Image, ImageDraw, ImageChops, ImageFilter
+from PIL import Image, ImageFilter, ImageChops
 from pathlib import Path
-p=Path("file_00000000a8b88212877a593c1893ae10.png")
-im=Image.open(p).convert("RGBA")
-w,h=im.size
-# Hand-traced silhouette of the actual hat including the whole brim.
-# Polygon is deliberately wider than the old diagonal cut.
-points=[(.285,.16),(.31,.145),(.38,.14),(.49,.15),(.575,.145),(.605,.035),(.65,.012),(.71,.015),(.77,.08),(.82,.255),(.92,.32),(.975,.40),(.987,.49),(.975,.56),(.94,.60),(.875,.60),(.80,.56),(.72,.49),(.66,.425),(.59,.385),(.52,.38),(.46,.38),(.40,.40),(.35,.40),(.31,.375),(.285,.31)]
-mask=Image.new("L",(w,h),0)
-d=ImageDraw.Draw(mask)
-d.polygon([(round(x*w),round(y*h)) for x,y in points],fill=255)
-mask=mask.filter(ImageFilter.GaussianBlur(radius=1.2))
-alpha=im.getchannel("A")
-hat=im.copy();hat.putalpha(ImageChops.multiply(alpha,mask))
-body=im.copy();body.putalpha(ImageChops.subtract(alpha,mask))
-out=Path("app/src/main/assets");out.mkdir(parents=True,exist_ok=True)
-hat.save(out/"logo_hat_animation.png",compress_level=0)
-body.save(out/"logo_body_animation.png",compress_level=0)
-print("Animation layers:",(out/"logo_hat_animation.png").stat().st_size,(out/"logo_body_animation.png").stat().st_size)
+from collections import deque
+
+# Original separate artworks uploaded to GitHub, not masks of the combined logo.
+HAT = Path("file_000000000fd88212acf472681773094b.webp")
+LETTERS = Path("file_000000008f108212899a8afbba97be76.webp")
+out = Path("app/src/main/assets")
+out.mkdir(parents=True, exist_ok=True)
+
+def transparent_art(path):
+    im = Image.open(path).convert("RGBA")
+    alpha = im.getchannel("A")
+    if alpha.getextrema()[0] < 240:
+        return im
+    # The uploaded hat has a baked checkerboard preview. Separate its
+    # solid outlined silhouette by detecting non-neutral/dark pixels,
+    # closing the outline and filling its enclosed interior.
+    im.thumbnail((1100, 1100), Image.Resampling.LANCZOS)
+    rgb = im.convert("RGB")
+    w, h = im.size
+    px = rgb.load()
+    seed = Image.new("L", (w, h), 0)
+    sp = seed.load()
+    for y in range(h):
+        for x in range(w):
+            R,G,B = px[x,y]
+            if max(R,G,B)-min(R,G,B) > 26 or min(R,G,B) < 90:
+                sp[x,y] = 255
+    outline = seed.filter(ImageFilter.MaxFilter(15)).filter(ImageFilter.MinFilter(15))
+    op = outline.load()
+    seen = bytearray(w*h)
+    q = deque()
+    for x in range(w):
+        for y in (0,h-1):
+            k=y*w+x
+            if not seen[k] and op[x,y]==0:seen[k]=1;q.append((x,y))
+    for y in range(h):
+        for x in (0,w-1):
+            k=y*w+x
+            if not seen[k] and op[x,y]==0:seen[k]=1;q.append((x,y))
+    while q:
+        x,y=q.popleft()
+        for nx,ny in ((x-1,y),(x+1,y),(x,y-1),(x,y+1)):
+            if 0<=nx<w and 0<=ny<h:
+                k=ny*w+nx
+                if not seen[k] and op[nx,ny]==0:
+                    seen[k]=1;q.append((nx,ny))
+    mask=Image.new("L",(w,h),0); mp=mask.load()
+    for y in range(h):
+        for x in range(w):
+            if not seen[y*w+x]:mp[x,y]=255
+    mask=mask.filter(ImageFilter.MinFilter(5)).filter(ImageFilter.GaussianBlur(.8))
+    im.putalpha(mask)
+    return im
+
+hat=transparent_art(HAT)
+letters=transparent_art(LETTERS)
+# Normalize to the same 1536x1024 canvas so the runtime can animate
+# them as separate layers with identical transform origins.
+canvas=(1536,1024)
+body=Image.new("RGBA",canvas,(0,0,0,0))
+letters.thumbnail((1430,780),Image.Resampling.LANCZOS)
+body.alpha_composite(letters,((canvas[0]-letters.width)//2,235))
+hat_canvas=Image.new("RGBA",canvas,(0,0,0,0))
+hat.thumbnail((1000,610),Image.Resampling.LANCZOS)
+hat_canvas.alpha_composite(hat,((canvas[0]-hat.width)//2,0))
+body.save(out/"logo_body_animation.png",compress_level=1)
+hat_canvas.save(out/"logo_hat_animation.png",compress_level=1)
+print("Using independently uploaded hat and lettering assets")
