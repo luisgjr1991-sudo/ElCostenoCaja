@@ -25,6 +25,7 @@ public class MainActivity extends Activity {
  String printerAddress="";
  android.webkit.ValueCallback<Uri[]> pendingFiles;
  static final int PICK_IMAGE_REQUEST=7421;
+ static final int SPEECH_REQUEST=7422;
  @Override public void onCreate(Bundle b){super.onCreate(b);web=new WebView(this);setContentView(web);web.getSettings().setJavaScriptEnabled(true);web.getSettings().setDomStorageEnabled(true);web.getSettings().setAllowFileAccess(true);web.setWebChromeClient(new WebChromeClient(){
   @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params){
    if(pendingFiles!=null)pendingFiles.onReceiveValue(null);
@@ -46,8 +47,21 @@ public class MainActivity extends Activity {
   }
   @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request){return route(request.getUrl());}
   @Override public boolean shouldOverrideUrlLoading(WebView view,String url){return route(Uri.parse(url));}
- });web.addJavascriptInterface(new Printer(),"AndroidPrinter");web.addJavascriptInterface(new PersistentStore(),"AndroidStorage");web.addJavascriptInterface(new CashAudio(),"AndroidCashAudio");bluetooth=BluetoothAdapter.getDefaultAdapter();printerAddress=getPreferences(0).getString("printer","");web.loadUrl("file:///android_asset/index.html");}
- @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){super.onActivityResult(requestCode,resultCode,data);if(requestCode==PICK_IMAGE_REQUEST&&pendingFiles!=null){Uri[] result=(resultCode==RESULT_OK&&data!=null&&data.getData()!=null)?new Uri[]{data.getData()}:null;pendingFiles.onReceiveValue(result);pendingFiles=null;}}
+ });web.addJavascriptInterface(new Printer(),"AndroidPrinter");web.addJavascriptInterface(new SpeechBridge(),"AndroidSpeech");web.addJavascriptInterface(new PersistentStore(),"AndroidStorage");web.addJavascriptInterface(new CashAudio(),"AndroidCashAudio");bluetooth=BluetoothAdapter.getDefaultAdapter();printerAddress=getPreferences(0).getString("printer","");web.loadUrl("file:///android_asset/index.html");}
+ @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){super.onActivityResult(requestCode,resultCode,data);if(requestCode==SPEECH_REQUEST){if(resultCode==RESULT_OK&&data!=null){ArrayList<String> results=data.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS);speechResult("ok",results!=null&&!results.isEmpty()?results.get(0):"");}else speechResult("cancel","Dictado cancelado.");return;}if(requestCode==PICK_IMAGE_REQUEST&&pendingFiles!=null){Uri[] result=(resultCode==RESULT_OK&&data!=null&&data.getData()!=null)?new Uri[]{data.getData()}:null;pendingFiles.onReceiveValue(result);pendingFiles=null;}}
+ public class SpeechBridge {
+  @JavascriptInterface public void start(String label){runOnUiThread(()->{try{
+   Intent i=new Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+   i.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+   i.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE,"es-MX");
+   i.putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT,"Dictar "+(label==null?"dato":label));
+   i.putExtra(android.speech.RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,12000L);
+   i.putExtra(android.speech.RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,8000L);
+   i.putExtra(android.speech.RecognizerIntent.EXTRA_MAX_RESULTS,1);
+   startActivityForResult(i,SPEECH_REQUEST);
+  }catch(Exception e){speechResult("error","No se pudo abrir reconocimiento de voz en Android.");}});}
+ }
+ void speechResult(String status,String value){runOnUiThread(()->web.evaluateJavascript("window.orderNativeSpeechResult&&window.orderNativeSpeechResult("+JSONObject.quote(status)+","+JSONObject.quote(value)+")",null));}
  private android.media.MediaPlayer activeSound;
  public class CashAudio {
   @JavascriptInterface public void play(String kind,int volume,boolean vibrate){
