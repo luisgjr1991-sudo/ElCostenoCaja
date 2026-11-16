@@ -403,6 +403,7 @@ function parsePlateSpeech(raw){
   }
   if(Object.keys(items).length)for(let i=0;i<repetitions;i++)plates.push({...items});
  }
+ if(leftoverMatch&&plates.length===0&&/\b(?:carne|frijol|chicharron|machaca|asada)\b/.test(rest))return {error:'No pude identificar los platos con guiso. Revisa el dictado antes de completar los surtidos.',notes:raw};
  if(leftoverMatch&&plates.length<expected)while(plates.length<expected)plates.push(assorted());
  if(plates.length!==expected||!plates.length)return {error:'Se detectaron '+plates.length+' de '+expected+' platos. Revisa el dictado.',notes:raw};
  return {plates,notes:''};
@@ -412,6 +413,9 @@ function applySpokenOrder(transcript){
  const plate=parsePlateSpeech(raw);
  if(plate){
   if(plate.error)return {found:0,notes:raw,warning:plate.error};
+  // Un dictado completo reemplaza el emplatado anterior, nunca lo acumula.
+  for(const oldPlate of orderPlates)for(const [key,n] of Object.entries(oldPlate.items))orderQty[key]=Math.max(0,(orderQty[key]||0)-n);
+  orderPlates=[];
   for(const items of plate.plates)addPlate(items);
   renderOrder();
   return {found:plate.plates.reduce((n,p)=>n+Object.values(p).reduce((a,b)=>a+b,0),0),notes:''};
