@@ -496,6 +496,17 @@ function editPlatesByVoice(raw){
 }
 function applySpokenOrder(transcript){
  const raw=String(transcript||'').trim();
+ const normalizedAdd=spokenNormalize(raw);
+ // Añadir platos nuevos no es una edición de guisos de platos existentes.
+ const addAssorted=normalizedAdd.match(/\b(?:agrega(?:r|le|les)?|anade(?:r)?|pon(?:er)?|suma(?:r)?|incluye|mete)\s+(?:(?:otros?|otras?)\s+)?(\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+platos?\s+(?:mas\s+)?surtidos?\b/);
+ if(addAssorted){
+  const amount=spokenCount(addAssorted[1]);
+  if(!amount||amount>50||orderPlates.length+amount>50)return {found:0,notes:raw,warning:'No se agregaron platos: revisa la cantidad (máximo 50).'};
+  const guisos=orderStewNames();
+  for(let i=0;i<amount;i++)addPlate(Object.fromEntries(guisos.map(k=>[k,1])));
+  renderOrder();
+  return {found:amount*guisos.length,notes:'',message:'Agregados '+amount+' platos surtidos. Ahora son '+orderPlates.length+' platos.'};
+ }
  const edit=editPlatesByVoice(raw);if(edit)return edit;
  const plate=parseListedPlates(raw)||parsePlateSpeech(raw);
  if(plate){
