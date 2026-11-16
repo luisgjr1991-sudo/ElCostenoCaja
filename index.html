@@ -302,7 +302,7 @@ window.orderNativeSpeechResult=(status,value)=>{
  if(status==='ok'&&field&&$(field)){
   let text=String(value||'').trim();
   if(field==='orderPhone')text=text.replace(/[^0-9+]/g,'');
-  if(text){$(field).value=($(field).value.trim()&&field!=='orderPhone'?$(field).value.trim()+' ':'')+text;$('orderVoiceStatus').textContent='Dictado guardado en '+orderVoiceNames[field]+'. Puedes corregirlo o volver a dictar.';}
+  if(text){let recognized=field==='orderNotes'?applySpokenOrder(text):{found:0,notes:text};if(recognized.notes)$(field).value=($(field).value.trim()&&field!=='orderPhone'?$(field).value.trim()+' ':'')+recognized.notes;$('orderVoiceStatus').textContent=recognized.found?'Agregados '+recognized.found+' productos al pedido. Revisa las cantidades antes de imprimir.':'Dictado guardado en '+orderVoiceNames[field]+'. Puedes corregirlo o volver a dictar.';}
   else $('orderVoiceStatus').textContent='No se reconoció contenido. Intenta nuevamente.';
  }else $('orderVoiceStatus').textContent=value||'Dictado cancelado. Puedes intentarlo otra vez.';
 };
@@ -324,6 +324,26 @@ document.addEventListener('click',e=>{
  r.onend=()=>{if(orderSpeech===r)orderVoiceReset()};
  try{r.start()}catch(e){window.orderNativeSpeechResult('error','No se pudo iniciar el dictado.')}
 });
+
+const spokenNumbers={un:1,uno:1,una:1,unos:1,unas:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,once:11,doce:12,trece:13,catorce:14,quince:15,dieciseis:16,diecisiete:17,dieciocho:18,diecinueve:19,veinte:20,veintiuno:21,veintidos:22,veintitres:23,veinticuatro:24,veinticinco:25,veintiseis:26,veintisiete:27,veintiocho:28,veintinueve:29,treinta:30,cuarenta:40,cincuenta:50,sesenta:60,setenta:70,ochenta:80,noventa:90,cien:100};
+const spokenNormalize=t=>String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+function spokenCount(words){const a=words.trim().split(/\s+/);if(!a[0])return null;let first=spokenNumbers[a[0]];if(first==null&&/^\d+$/.test(a[0]))first=Number(a[0]);if(first==null)return null;if(a.length===1)return first;if(a.length===3&&a[1]==='y'&&spokenNumbers[a[2]]!=null&&first>=30&&first<=90)return first+spokenNumbers[a[2]];return null}
+function applySpokenOrder(transcript){
+ const raw=String(transcript||'').trim(),normalized=spokenNormalize(raw);
+ const pattern=/(\b(?:\d+|un|uno|una|unos|unas|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte|veinti(?:uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve)|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien)(?:\s+y\s+(?:uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve))?)\s+(?:(?:tacos?|taquitos?|orden(?:es)?|vasos?|botellas?|latas?)\s+)?(?:de\s+)?(carne\s+asada|chicharron|machaca|frijoles?|carne|bebidas?|refrescos?|aguas?|sodas?)(?:\b)/g;
+ let found=0,unmatched=normalized;
+ for(const m of normalized.matchAll(pattern)){
+  const count=spokenCount(m[1]);if(!Number.isSafeInteger(count)||count<1||count>10000)continue;
+  const kind=m[2];let key=kind.startsWith('frijol')?'Frijol':kind==='chicharron'?'Chicharrón':kind==='carne asada'?'Carne asada':kind==='machaca'?'Machaca':kind==='carne'?'Carne':'bebida';
+  if(key!=='bebida'&&!orderStewNames().includes(key))continue;
+  orderQty[key]=(orderQty[key]||0)+count;found+=count;
+  unmatched=unmatched.replace(m[0],' ');
+ }
+ if(found)renderOrder();
+ // Conserva las indicaciones especiales, pero no repite las cantidades ya registradas.
+ const notes=unmatched.replace(/\b(?:y|de|tacos?|taquitos?|orden(?:es)?)\b/g,' ').replace(/\s+/g,' ').trim();
+ return {found,notes:found?notes:raw};
+}
 let orderQty={};const orderStewNames=()=>new Date().getDay()===6?['Carne','Frijol','Chicharrón','Carne asada']:['Carne','Frijol','Chicharrón','Machaca'];
 const orderTacoPrice=()=>Number(products.find(p=>/taco/i.test(p.name))?.price??19);
 const orderDrinkPrice=()=>Number(products.find(p=>/bebida|refresco/i.test(p.name))?.price??20);
