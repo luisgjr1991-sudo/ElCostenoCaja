@@ -187,7 +187,50 @@ function trailingPlateEdit(raw){
  if(delta<0&&(orderPlates[i].items[key]||0)<qty)return {error:"No hay suficientes tacos para quitar."};
  return {mode:"adjust",index:i,key,delta};
 }
+
+// Edit commands with flexible word order, including empty plate creation.
+function flexibleEdit(raw){
+ const t=clean(raw,true).replace(/\b(?:agregame|agregale|anade|anademe|echame|avientame|ponme|ponle|metele|sumale|dame|preparame)\b/g,"agrega")
+ .replace(/\b(?:quitame|quitale|sacale|sacame|borra|elimina|retira|restale)\b/g,"quita")
+ .replace(/\b(?:otro|otra)\s+(?:plato|platito)\b/g,"un plato")
+ .replace(/\b(?:tacos|taquitos)\b/g,"tacos").trim();
+ const qtyRe=number;
+ const plateWord="(primero|primer|segundo|tercero|tercer|cuarto|quinto|ultimo|\\d+|uno|dos|tres|cuatro|cinco)";
+ const targetRe=new RegExp("\\b(?:al\\s+|del\\s+|en\\s+el\\s+|de\\s+el\\s+|el\\s+)?(?:plato\\s+)?"+plateWord+"(?:\\s+plato)?\\b");
+ const ord={primero:0,primer:0,segundo:1,tercero:2,tercer:2,cuarto:3,quinto:4,ultimo:orderPlates.length-1};
+ const indexOf=x=>Object.hasOwn(ord,x)?ord[x]:n(x)-1;
+ const removePlate=t.match(new RegExp("^quita\\s+(?:el\\s+)?(?:plato\\s+)?"+plateWord+"(?:\\s+plato)?$"));
+ if(removePlate){
+  const i=indexOf(removePlate[1]);
+  return i>=0&&i<orderPlates.length?{mode:"delete",index:i}:{error:"No existe ese plato."};
+ }
+ const addPlateCmd=t.match(new RegExp("^agrega\\s+(?:(?:otros?\\s+)?"+qtyRe+"\\s+platos?|un\\s+plato)(?:\\s+mas)?(?:\\s+(?:con|de)\\s+(.+))?$"));
+ if(addPlateCmd){
+  const count=n(addPlateCmd[1]||"un");
+  if(count<1||count>50||count+orderPlates.length>50)return {error:"Máximo 50 platos."};
+  const content=addPlateCmd[2]||"";
+  const items={};
+  if(content){
+   const re=new RegExp("\\b"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"\\b","g");
+   const matches=[...content.matchAll(re)];
+   if(!matches.length)return null;
+   for(const m of matches){const q=n(m[1]);if(q<1||q>100)return null;const k=keyOf(m[2]);items[k]=(items[k]||0)+q}
+  }
+  return {mode:"append",plates:Array.from({length:count},()=>({...items}))};
+ }
+ // "quita dos de frijol del segundo", "ponme uno de carne al plato tres".
+ const m=t.match(new RegExp("^(agrega|quita)\\s+"+qtyRe+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"\\s+(?:al|del|en\\s+el|de\\s+el)\\s+(?:plato\\s+)?"+plateWord+"(?:\\s+plato)?$"));
+ if(m){
+  const i=indexOf(m[4]),q=n(m[2]),k=keyOf(m[3]),delta=m[1]==="quita"?-q:q;
+  if(i<0||i>=orderPlates.length)return {error:"No existe ese plato."};
+  if(q<1||q>100)return null;
+  if(delta<0&&(orderPlates[i].items[k]||0)<q)return {error:"No hay suficientes tacos para quitar."};
+  return {mode:"adjust",index:i,key:k,delta};
+ }
+ return null;
+}
 function editCommand(raw){
+ const flexible=flexibleEdit(raw);if(flexible)return flexible;
  const trailing=trailingPlateEdit(raw);if(trailing)return trailing;
  const generalized=generalEdit(raw);if(generalized)return generalized;
  const t=clean(raw,true);
