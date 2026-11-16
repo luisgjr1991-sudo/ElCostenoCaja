@@ -63,6 +63,30 @@ function distinctPlates(raw){
  }
  return {mode:"replace",plates};
 }
+
+// Split a spoken multi-plate order by each explicit plate marker, never by a shared stew.
+function segmentedOrder(raw){
+ const t=clean(raw);
+ const head=t.match(new RegExp("^"+number+"\\s+platos?(?:\\s+de\\s+tacos?)?\\b"));
+ if(!head||n(head[1])<2)return null;
+ const count=n(head[1]),body=t.slice(head[0].length).trim();
+ const marker=/\b(?:(?:y\s+)?(?:en\s+|para\s+|al\s+)?(?:el\s+|la\s+)?(?:plato\s+)?(?:primero|primer|segundo|tercero|tercer|cuarto|quinto|ultimo)|(?:y\s+)?(?:en\s+|para\s+)?(?:un|uno|otro|el otro)\s+plato|(?:y\s+)?(?:en\s+)?(?:el\s+)?(?:primero|segundo|tercero|cuarto|quinto))\b/g;
+ const marks=[...body.matchAll(marker)];
+ if(marks.length!==count)return null;
+ const parts=marks.map((m,i)=>body.slice(m.index+m[0].length,i+1<marks.length?marks[i+1].index:undefined));
+ const itemRe=new RegExp("\\b"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"\\b","g");
+ const plates=[];
+ for(const part of parts){
+  const items={},matches=[...part.matchAll(itemRe)];
+  if(!matches.length)return null;
+  for(const m of matches){
+   const q=n(m[1]);if(q<1||q>100)return null;
+   const k=keyOf(m[2]);items[k]=(items[k]||0)+q;
+  }
+  plates.push(items);
+ }
+ return {mode:"replace",plates};
+}
 function sequential(raw){
  const t=clean(raw);
  const head=t.match(new RegExp("^"+number+"\\s+platos?(?:\\s+de\\s+tacos?)?\\s*"));
@@ -187,6 +211,7 @@ function editCommand(raw){
  return {mode:"adjust",index:ix,key:k,delta:remove?-qty:qty};
 }
 function parse(raw){
+ const segmented=segmentedOrder(raw);if(segmented)return segmented;
  const distinct=distinctPlates(raw);if(distinct)return distinct;
  const edit=editCommand(raw);if(edit)return edit;
  const ordered=sequential(raw);if(ordered)return ordered;
@@ -221,13 +246,12 @@ const previous=applySpokenOrder;
 applySpokenOrder=function(transcript){
  const result=parse(transcript);
  if(!result){
-  // Reject ambiguous mixed-stew multi-plate orders instead of duplicating a single stew.
+  // Do not pass multi-plate orders to the legacy parser: it can repeat one mix
+  // in every plate even when the speaker described different plates.
   const safetyText=clean(transcript);
-  const safetyNamed=[...safetyText.matchAll(/\b(?:carne asada|chicharron(?:es)?|frijol(?:es)?|machaca|carne|asada)\b/g)].map(m=>keyOf(m[0]));
-  const safetyRefs=[...safetyText.matchAll(/\b(?:plato|primero|segundo|tercero|cuarto|otro plato|en otro|en uno)\b/g)].length;
-  const safetyHead=safetyText.match(new RegExp("^"+number+"\\s+platos?"));
-  if(((safetyHead&&n(safetyHead[1])>1)||safetyRefs>1)&&new Set(safetyNamed).size>1){
-   return {found:0,notes:transcript,warning:"Detecté distintos guisos y platos, pero no pude distribuirlos con seguridad. No modifiqué el pedido. Dicta cada plato por separado o revisa la frase."};
+  if(new RegExp("\\b"+number+"\\s+platos?\\b").test(safetyText)&&
+     /\b(?:primero|segundo|tercero|en otro|otro plato|un plato|uno con)\b/.test(safetyText)){
+   return {found:0,notes:transcript,warning:"No pude identificar todos los platos por separado. El pedido anterior se conserva."};
   }
   // Evitar que el intérprete anterior invente Carne cuando se nombraron otros guisos.
   const heard=clean(transcript);
