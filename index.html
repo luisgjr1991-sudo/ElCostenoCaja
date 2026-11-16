@@ -359,8 +359,11 @@ function parsePlateSpeech(raw){
  if(!header)return null;
  const rest=normalized.slice(header.index+header[0].length).trim();
  const boundary=/(?=\b(?:uno|una|un|otro|otra|otros|otras|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+(?:platos?\s+)?(?:con|de|surtidos?\b)|\b(?:otro|otra)\s+surtido\b)/g;
- const positions=[...rest.matchAll(boundary)].map(m=>m.index).filter((v,i,a)=>i===0||v!==a[i-1]);
- const segments=positions.map((p,i)=>rest.slice(p,positions[i+1]??rest.length).replace(/^(?:y\s+)+/,'').trim());
+ const remainingMarker=/\b(?:y\s+)?(?:los\s+|las\s+)?(?:demas|restantes|que\s+faltan)\s+(?:platos?\s+)?surtidos?\b/;
+ const remainingMatch=rest.match(remainingMarker);
+ const explicitRest=remainingMatch?rest.slice(0,remainingMatch.index).trim():rest;
+ const positions=[...explicitRest.matchAll(boundary)].map(m=>m.index).filter((v,i,a)=>i===0||v!==a[i-1]);
+ const segments=positions.map((p,i)=>explicitRest.slice(p,positions[i+1]??explicitRest.length).replace(/^(?:y\s+)+/,'').trim());
  const plates=[];
  for(let segment of segments){
   segment=segment.replace(/^y\s+/,'');
@@ -387,6 +390,9 @@ function parsePlateSpeech(raw){
   if(Object.keys(items).length)plates.push(items);
  }
  const expected=number(header[1]);
+ if(remainingMatch&&plates.length<expected&&expected<=50){
+  while(plates.length<expected)plates.push(Object.fromEntries(names.map(k=>[k,1])));
+ }
  if(plates.length!==expected||!plates.length)return {error:'Se detectaron '+plates.length+' de '+expected+' platos. Corrige el texto y vuelve a interpretar.',notes:raw};
  return {plates,notes:''};
 }
