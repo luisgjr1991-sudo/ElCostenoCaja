@@ -71,7 +71,7 @@ function segmentedOrder(raw){
  if(!head||n(head[1])<2)return null;
  const count=n(head[1]),body=t.slice(head[0].length).trim();
  const marker=/\b(?:(?:y\s+)?(?:en\s+|para\s+|al\s+)?(?:el\s+|la\s+)?(?:plato\s+)?(?:primero|primer|segundo|tercero|tercer|cuarto|quinto|ultimo)|(?:y\s+)?(?:en\s+|para\s+)?(?:un|uno|otro|el otro)\s+plato|(?:y\s+)?(?:en\s+)?(?:el\s+)?(?:primero|segundo|tercero|cuarto|quinto))\b/g;
- const marks=[...body.matchAll(marker)];
+ const marks=[...body.matchAll(marker)].length===count?[...body.matchAll(marker)]:[...body.matchAll(/\b(?:y\s+)?(?:en\s+)?(?:uno|un|otro|el otro)(?:\s+plato)?\b/g)].filter(m=>/\b(?:en\s+|otro|un\s+plato)/.test(m[0]));
  if(marks.length!==count)return null;
  const parts=marks.map((m,i)=>body.slice(m.index+m[0].length,i+1<marks.length?marks[i+1].index:undefined));
  const itemRe=new RegExp("\\b"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"\\b","g");
