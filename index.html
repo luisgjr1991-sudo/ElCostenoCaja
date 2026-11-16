@@ -353,47 +353,47 @@ let orderPlates=[];
 function addPlate(items){orderPlates.push({id:Date.now()+Math.random(),items:{...items}});for(const [key,n] of Object.entries(items))orderQty[key]=(orderQty[key]||0)+n}
 function parsePlateSpeech(raw){
  const normalized=spokenNormalize(raw);
- const countWords='(?:\\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)';
- const number=s=>spokenCount(s)||0,names=orderStewNames();
- const header=normalized.match(new RegExp('\\b('+countWords+')\\s+platos?\\b'));
+ const numberWord='(?:\\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)';
+ const num=w=>spokenCount(w)||0,names=orderStewNames();
+ const header=normalized.match(new RegExp('\\b('+numberWord+')\\s+platos?\\b'));
  if(!header)return null;
- const rest=normalized.slice(header.index+header[0].length).trim();
- const boundary=/(?=\b(?:(?:uno|una|un|otro|otra)\s+con\b|(?:otro|otra)\s+surtido\b|(?:otros|otras)\s+(?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+(?:platos?\s+)?(?:con\s+)?surtidos?\b|(?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+(?:platos?\s+)?(?:con\s+)?surtidos?\b))/g;
- const remainingMarker=/\b(?:y\s+)?(?:los\s+|las\s+)?(?:demas|restantes|que\s+faltan)\s+(?:platos?\s+)?surtidos?\b/;
- const remainingMatch=rest.match(remainingMarker);
- const explicitRest=remainingMatch?rest.slice(0,remainingMatch.index).trim():rest;
- const positions=[...explicitRest.matchAll(boundary)].map(m=>m.index).filter((v,i,a)=>i===0||v!==a[i-1]);
- const segments=positions.map((p,i)=>explicitRest.slice(p,positions[i+1]??explicitRest.length).replace(/^(?:y\s+)+/,'').trim());
- const plates=[];
+ const expected=num(header[1]);if(expected<1||expected>50)return {error:'Indica entre 1 y 50 platos.',notes:raw};
+ let rest=normalized.slice(header.index+header[0].length).trim();
+ const leftover=/\b(?:(?:y\s+)?(?:los\s+|las\s+)?(?:demas|restantes|que\s+queden|que\s+faltan|otros\s+que\s+queden|resto\s+de\s+los|resto\s+de\s+las)|(?:y\s+)?(?:el\s+)?resto)\s+(?:platos?\s+)?(?:van\s+|seran\s+|son\s+|con\s+|de\s+)?surtidos?\b/;
+ const leftoverMatch=rest.match(leftover);
+ if(leftoverMatch)rest=rest.slice(0,leftoverMatch.index).trim();
+ const boundaries=/(?=\b(?:(?:uno|una|un|otro|otra)\s+(?:plato\s+)?con\b|(?:otro|otra)\s+surtido\b|(?:otros|otras)\s+(?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+(?:platos?\s+)?(?:con\s+)?surtidos?\b|(?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+(?:platos?\s+)?(?:con\s+)?surtidos?\b|(?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+platos?\s+con\b))/g;
+ const positions=[...rest.matchAll(boundaries)].map(m=>m.index).filter((v,i,a)=>i===0||v!==a[i-1]);
+ const segments=positions.map((p,i)=>rest.slice(p,positions[i+1]??rest.length).replace(/^y\s+/,'').trim());
+ const plates=[],assorted=()=>Object.fromEntries(names.map(k=>[k,1]));
+ const kindOf=part=>{
+  if(/\b(?:machaca|asada)\b/.test(part))return names[3];
+  if(/\bfrijol(?:es)?\b/.test(part))return 'Frijol';
+  if(/\bchicharron\b/.test(part))return 'Chicharrón';
+  if(/\bcarne\b/.test(part))return 'Carne';
+  return null;
+ };
  for(let segment of segments){
-  segment=segment.replace(/^y\s+/,'');
-  const multi=segment.match(new RegExp('^(?:(?:otros?|otras?)\\s+)?('+countWords+')\\s+(?:platos?\\s+)?(?:(?:con|de)\\s+)?surtidos?\\b'));
-  if(multi){
-   const n=number(multi[1]);if(n>0&&n<=50)for(let i=0;i<n;i++)plates.push(Object.fromEntries(names.map(k=>[k,1])));
-   continue;
+  const multi=segment.match(new RegExp('^(?:(?:otros?|otras?)\\s+)?('+numberWord+')\\s+(?:platos?\\s+)?(?:(?:con|de)\\s+)?surtidos?\\b'));
+  if(multi){const n=num(multi[1]);if(n<1||n>50)return {error:'Cantidad de surtidos inválida.',notes:raw};for(let i=0;i<n;i++)plates.push(assorted());continue}
+  if(/^(?:otro|otra|un|uno|una)\s+(?:(?:con|de)\s+)?surtido\b/.test(segment)){plates.push(assorted());continue}
+  // "dos platos con dos de chicharrón cada uno" = dos platos independientes.
+  let group=segment.match(new RegExp('^('+numberWord+')\\s+platos?\\s+(?:con|de)\\s+'));
+  const repetitions=group?num(group[1]):1;
+  if(repetitions<1||repetitions>50)return {error:'Cantidad de platos inválida.',notes:raw};
+  if(group)segment=segment.slice(group[0].length);
+  else segment=segment.replace(/^(?:otro|otra|uno|una|un)\s+(?:plato\s+)?(?:con|de)\s+/,'').replace(/^con\s+/,'');
+  segment=segment.replace(/\s+cada\s+uno(?:\s+de\s+ellos)?$/,'').replace(/\s+en\s+cada\s+plato$/,'');
+  const items={};
+  for(const piece of segment.split(/\s+y\s+|,/).map(v=>v.trim()).filter(Boolean)){
+   const match=piece.match(new RegExp('^('+numberWord+')\\s+(?:tacos?\\s+)?(?:de\\s+)?(.+)$'));
+   const qty=match?num(match[1]):1,key=kindOf(match?match[2]:piece);
+   if(key&&qty>0)items[key]=(items[key]||0)+qty;
   }
-  if(/^(?:otro|otra|un|uno|una)\s+(?:(?:con|de)\s+)?surtido\b/.test(segment)){
-   plates.push(Object.fromEntries(names.map(k=>[k,1])));continue;
-  }
-  segment=segment.replace(/^(?:otro|otra|uno|una|un)\s+(?:con|de)\s+/,'').replace(/^con\s+/,'');
-  const pieces=segment.split(/\s+y\s+|,/).map(v=>v.trim()).filter(Boolean),items={};
-  for(const piece of pieces){
-   const m=piece.match(new RegExp('^('+countWords+')\\s+(?:tacos?\\s+)?(?:de\\s+)?(.+)$'));
-   const n=m?number(m[1]):1,kind=m?m[2]:piece;
-   let key=null;
-   if(/\b(?:machaca|asada)\b/.test(kind))key=names[3];
-   else if(/\bfrijol(?:es)?\b/.test(kind))key='Frijol';
-   else if(/\bchicharron\b/.test(kind))key='Chicharrón';
-   else if(/\bcarne\b/.test(kind))key='Carne';
-   if(key&&n>0)items[key]=(items[key]||0)+n;
-  }
-  if(Object.keys(items).length)plates.push(items);
+  if(Object.keys(items).length)for(let i=0;i<repetitions;i++)plates.push({...items});
  }
- const expected=number(header[1]);
- if(remainingMatch&&plates.length<expected&&expected<=50){
-  while(plates.length<expected)plates.push(Object.fromEntries(names.map(k=>[k,1])));
- }
- if(plates.length!==expected||!plates.length)return {error:'Se detectaron '+plates.length+' de '+expected+' platos. Corrige el texto y vuelve a interpretar.',notes:raw};
+ if(leftoverMatch&&plates.length<expected)while(plates.length<expected)plates.push(assorted());
+ if(plates.length!==expected||!plates.length)return {error:'Se detectaron '+plates.length+' de '+expected+' platos. Revisa el dictado.',notes:raw};
  return {plates,notes:''};
 }
 function applySpokenOrder(transcript){
