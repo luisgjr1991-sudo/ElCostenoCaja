@@ -6,7 +6,7 @@ const numbers={un:1,uno:1,una:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,och
 const n=x=>/^\d+$/.test(x)?Number(x):numbers[x]||0;
 const number="(\\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)";
 const flavors="(carne asada|carne|frijol(?:es)?|chicharrones?|chicharron|machaca|asada)";
-function clean(raw){
+function clean(raw,keepActions=false){
  let t=norm(raw);
  const rules=[
  [/\b(?:echame|avientame|aventame|armame|preparame|sirveme|dame|ponme|mandame|pasame|ocupo|necesito|quiero|me das|me pones|me preparas|me mandas|me echas|me avientas)\b/g,""],
@@ -23,7 +23,7 @@ function clean(raw){
  [/\b(?:ademas de|junto con|y tambien)\b/g,"y"],
  [/\b(?:por favor|porfa|porfis|porfi|este|fijate|mira)\b/g,""]
  ];
- for(const [rx,replacement] of rules)t=t.replace(rx,replacement);
+ for(const [i,[rx,replacement]] of rules.entries()){if(keepActions&&i===0)continue;t=t.replace(rx,replacement)}
  return t.replace(/\s+/g," ").trim();
 }
 function keyOf(x){
@@ -65,8 +65,64 @@ function sequential(raw){
  }
  return {mode:"replace",plates};
 }
+// Semantic commands: recognize intent, target, quantity and stew independently.
+function generalEdit(raw){
+ let t=clean(raw,true);
+ t=t.replace(/\b(?:me\s+)?(?:puedes|podrias|quieres|haces|harias)\s+(?:favor\s+de\s+)?/g,"")
+    .replace(/\b(?:porfa|porfavor|porfis|por favor|porfi)\b/g,"")
+    .replace(/\b(?:echale|echales|ponle|ponles|metele|meteles|sumale|sumales|agregale|agregales|anadele|anadeles)\b/g,"agrega")
+    .replace(/\b(?:sacale|sacales|quitale|quitales|restale|restales|retirale|retirales)\b/g,"quita")
+    .replace(/\b(?:avientame|aventame|preparame|sirveme|armame|mandame|pasame|echame|dame|ponme)\b/g,"agrega")
+    .replace(/\b(?:sacame|quitame|retirame|borrame)\b/g,"quita")
+    .replace(/\b(?:anade|anadir|incluye|mete|sumame|sumar|pon|echa|agregar)\b/g,"agrega")
+    .replace(/\b(?:elimina|eliminar|borra|borrar|saca|sacar|retira|retirar|resta|restar)\b/g,"quita")
+    .replace(/\b(?:otro|otra)\s+(?:platito|plato)\b/g,"un plato")
+    .replace(/\b(?:mas|extra|adicional(?:es)?)\b/g,"mas")
+    .replace(/\s+/g," ").trim();
+ const op=/\b(?:agrega|quita)\b/.exec(t);
+ if(!op)return null;
+ const remove=op[0]==="quita";
+ const word=number;
+ const itemRe=new RegExp("^"+word+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"$");
+ const parseItems=part=>{
+  const items={};
+  for(const chunk of part.replace(/\s+cada uno$/,"").split(/\s+y\s+/)){
+   const m=chunk.trim().match(itemRe);if(!m)return null;
+   const q=n(m[1]);if(q<1||q>100)return null;
+   if(/\basada\b/.test(m[2])&&orderStewNames()[3]!=="Carne asada")return null;
+   const k=keyOf(m[2]);items[k]=(items[k]||0)+q;
+  }
+  return Object.keys(items).length?items:null;
+ };
+ // Create new plates, including "agrega otro plato de tres de chicharrón".
+ if(!remove){
+  const m=t.match(new RegExp("\\b"+word+"\\s+platos?\\s*(?:mas\\s+)?(?:con|de|que lleve(?:n)?)\\s+(.+)$"));
+  if(m){
+   const count=n(m[1]),items=parseItems(m[2]);
+   if(!items)return {error:"No reconocí los guisos del plato nuevo."};
+   if(count<1||count>50||orderPlates.length+count>50)return {error:"Máximo 50 platos."};
+   return {mode:"append",plates:Array.from({length:count},()=>({...items}))};
+  }
+ }
+ // Targeting a specific plate: "al segundo agrégale dos de frijol".
+ const ord={primero:0,primer:0,segundo:1,tercero:2,tercer:2,cuarto:3,quinto:4,ultimo:orderPlates.length-1};
+ const target=t.match(/\b(?:plato\s+|al\s+|del\s+|en\s+el\s+|el\s+)(primero|primer|segundo|tercero|tercer|cuarto|quinto|ultimo|\d+|uno|dos|tres|cuatro|cinco)\b/);
+ const all=/\b(?:a\s+todos|en\s+todos|todos\s+los\s+platos|cada\s+plato|cada\s+uno)\b/.test(t);
+ const targets=all?orderPlates.map((_,i)=>i):target?[Object.hasOwn(ord,target[1])?ord[target[1]]:n(target[1])-1]:[];
+ if(!targets.length)return null;
+ if(targets.some(i=>i<0||i>=orderPlates.length))return {error:"No existe el plato indicado."};
+ let stripped=t.replace(/\b(?:agrega|quita)\b/g,"")
+  .replace(/\b(?:plato\s+|al\s+|del\s+|en\s+el\s+|el\s+)(?:primero|primer|segundo|tercero|tercer|cuarto|quinto|ultimo|\d+|uno|dos|tres|cuatro|cinco)\b/g,"")
+  .replace(/\b(?:a\s+todos|en\s+todos|todos\s+los\s+platos|cada\s+plato|cada\s+uno)\b/g,"")
+  .replace(/\b(?:le|les|me|unos|unas|con|de|mas)\b/g," ").replace(/\s+/g," ").trim();
+ const items=parseItems(stripped);
+ if(!items)return null;
+ if(remove&&targets.some(i=>Object.entries(items).some(([k,q])=>(orderPlates[i].items[k]||0)<q)))return {error:"No hay suficientes tacos de ese guiso para quitar."};
+ return {mode:"adjustMany",targets,items,sign:remove?-1:1};
+}
 function editCommand(raw){
- const t=clean(raw);
+ const generalized=generalEdit(raw);if(generalized)return generalized;
+ const t=clean(raw,true);
  const flavorItem=new RegExp("^"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"$");
  // Add one or more new plates, without replacing the current order.
  const add=t.match(new RegExp("^(?:agrega|agregame|anade|pon|ponme|mete|incluye|suma|echame)\\s+(?:otros?\\s+)?"+number+"\\s+platos?\\s*(?:mas\\s+)?(?:con|de)\\s+(.+)$"));
@@ -153,6 +209,16 @@ applySpokenOrder=function(transcript){
   return previous(transcript);
  }
  if(result.error)return {found:0,notes:transcript,warning:result.error};
+ if(result.mode==="adjustMany"){
+  for(const i of result.targets)for(const [k,q] of Object.entries(result.items)){
+   const delta=q*result.sign,items=orderPlates[i].items;
+   items[k]=(items[k]||0)+delta;
+   if(!items[k])delete items[k];
+   orderQty[k]=Math.max(0,(orderQty[k]||0)+delta);
+  }
+  renderOrder();
+  return {found:result.targets.length*Object.values(result.items).reduce((a,b)=>a+b,0),notes:"",message:"Pedido actualizado en "+result.targets.length+" plato(s)."};
+ }
  if(result.mode==="delete"){
   const old=orderPlates.splice(result.index,1)[0];
   for(const [k,q] of Object.entries(old.items))orderQty[k]=Math.max(0,(orderQty[k]||0)-q);
