@@ -28,6 +28,7 @@ public class MainActivity extends Activity {
   private WebView web;
   private ValueCallback<Uri[]> fileChooserCallback;
   private static final int FILE_PICKER_REQUEST=202;
+  private static final int SPEECH_REQUEST=203;
   private final Handler ui = new Handler(Looper.getMainLooper());
   private static final String PREF = "printer";
   private static final int BT_PERMISSION = 101;
@@ -40,6 +41,7 @@ public class MainActivity extends Activity {
     web.getSettings().setJavaScriptEnabled(true);
     web.getSettings().setDomStorageEnabled(true);
     web.addJavascriptInterface(new PrinterBridge(), "AndroidPrinter");
+    web.addJavascriptInterface(new SpeechBridge(), "AndroidSpeech");
     web.addJavascriptInterface(new CashAudioBridge(), "AndroidCashAudio");
     web.setWebChromeClient(new WebChromeClient() {
       @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
@@ -70,6 +72,26 @@ public class MainActivity extends Activity {
     });
     setContentView(web);
     web.loadUrl("file:///android_asset/index.html");
+  }
+
+  public class SpeechBridge {
+    @JavascriptInterface public void start() {
+      ui.post(() -> {
+        try {
+          Intent intent=new Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+          intent.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+          intent.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE,"es-MX");
+          intent.putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT,"Di nombre, teléfono y dirección del cliente");
+          intent.putExtra(android.speech.RecognizerIntent.EXTRA_MAX_RESULTS,1);
+          startActivityForResult(intent,SPEECH_REQUEST);
+        }catch(Exception e){
+          speechResult("error","No se encontró un servicio de dictado en Android. Revisa Google y reconocimiento de voz.");
+        }
+      });
+    }
+  }
+  private void speechResult(String status,String value) {
+    ui.post(() -> web.evaluateJavascript("window.orderNativeSpeechResult&&window.orderNativeSpeechResult("+JSONObject.quote(status)+","+JSONObject.quote(value)+")",null));
   }
 
   private boolean permission() {
@@ -427,6 +449,14 @@ public class MainActivity extends Activity {
   }
   @Override protected void onActivityResult(int requestCode,int resultCode,Intent data) {
     super.onActivityResult(requestCode,resultCode,data);
+    if(requestCode==SPEECH_REQUEST) {
+      if(resultCode==RESULT_OK && data!=null) {
+        ArrayList<String> words=data.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS);
+        if(words!=null && !words.isEmpty())speechResult("ok",words.get(0));
+        else speechResult("error","No se detectaron palabras. Intenta otra vez.");
+      } else speechResult("cancel","Dictado cancelado. Puedes intentarlo nuevamente.");
+      return;
+    }
     if(requestCode==FILE_PICKER_REQUEST && fileChooserCallback!=null) {
       Uri[] result=WebChromeClient.FileChooserParams.parseResult(resultCode,data);
       fileChooserCallback.onReceiveValue(result);
