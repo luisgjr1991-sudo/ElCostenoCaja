@@ -860,4 +860,59 @@ renderHeader();render();showOpeningWelcome();
  schedule();
 })();
 })();
+</script><style>
+#bottomNavigation{display:none!important}
+#ecTopControls{position:fixed;top:6px;left:8px;right:8px;z-index:9998;display:flex;justify-content:space-between;pointer-events:none}
+#ecTopControls button{pointer-events:auto;background:#8b220c;color:white;border:2px solid #e6b24e;border-radius:12px;padding:7px 12px;font-size:22px;box-shadow:0 2px 6px #0008}
+#ecTopBack[hidden],#ecTopGear[hidden]{display:none!important}
+header{padding-top:44px!important}
+</style>
+<div id="ecTopControls"><button id="ecTopBack" hidden aria-label="Regresar">←</button><button id="ecTopGear" aria-label="Ajustes">⚙️</button></div>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ const sections=['caja','pedidos','historial','cortes','ajustes','papelera'];
+ let origin='caja', lastMain='caja';
+ const active=()=>sections.find(id=>$(id)&&!$(id).classList.contains('hidden'))||'caja';
+ function update(){
+  const current=active();
+  if(current==='caja'||current==='pedidos')lastMain=current;
+  $('ecTopBack').hidden=current==='caja'||current==='pedidos';
+  $('ecTopGear').hidden=!(current==='caja'||current==='pedidos');
+ }
+ function navigate(id){
+  const btn=document.querySelector('[data-tab="'+id+'"]');
+  if(btn)btn.click();
+  update();
+  window.scrollTo(0,0);
+ }
+ $('ecTopGear').onclick=()=>{origin=active();navigate('ajustes')};
+ function back(){
+  if(!$('settingsDetail').classList.contains('hidden')&&active()==='ajustes'){$('settingsBack').click();update();return}
+  if(active()==='papelera'){const b=$('trashClose');if(b)b.click();update();return}
+  if(active()==='ajustes'&&origin!=='ajustes')navigate(origin);
+  else if(active()==='historial'||active()==='cortes')navigate('ajustes');
+  else navigate(lastMain);
+ }
+ $('ecTopBack').onclick=back;
+ document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>setTimeout(update,0)));
+ // The native Android back button may dispatch history traversal in the WebView.
+ history.pushState({ecNav:true},'','#app');
+ window.addEventListener('popstate',()=>{back();history.pushState({ecNav:true},'','#app')});
+ let x=0,y=0,started=false;
+ document.addEventListener('touchstart',e=>{
+  const t=e.touches[0];if(!t)return;
+  if(e.target.closest('input,textarea,select,button,[contenteditable],.order-plate,details')){started=false;return}
+  x=t.clientX;y=t.clientY;started=true;
+ },{passive:true});
+ document.addEventListener('touchend',e=>{
+  if(!started)return;started=false;
+  const t=e.changedTouches[0];if(!t)return;
+  const dx=t.clientX-x,dy=t.clientY-y;
+  if(Math.abs(dx)<85||Math.abs(dx)<Math.abs(dy)*1.5)return;
+  if(active()==='caja'&&dx<0)navigate('pedidos');
+  else if(active()==='pedidos'&&dx>0)navigate('caja');
+ },{passive:true});
+ update();
+})();
 </script></body></html>
