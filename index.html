@@ -358,7 +358,7 @@ function parsePlateSpeech(raw){
  const header=normalized.match(new RegExp('\\b('+countWords+')\\s+platos?\\b'));
  if(!header)return null;
  const rest=normalized.slice(header.index+header[0].length).trim();
- const boundary=/(?=\b(?:uno|una|un|otro|otra|otros|otras|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+(?:platos?\s+)?(?:con|de|surtidos?\b)|\b(?:otro|otra)\s+surtido\b)/g;
+ const boundary=/(?=\b(?:(?:uno|una|un|otro|otra)\s+con\b|(?:otro|otra)\s+surtido\b|(?:otros|otras)\s+(?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+(?:platos?\s+)?(?:con\s+)?surtidos?\b|(?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+(?:platos?\s+)?(?:con\s+)?surtidos?\b))/g;
  const remainingMarker=/\b(?:y\s+)?(?:los\s+|las\s+)?(?:demas|restantes|que\s+faltan)\s+(?:platos?\s+)?surtidos?\b/;
  const remainingMatch=rest.match(remainingMarker);
  const explicitRest=remainingMatch?rest.slice(0,remainingMatch.index).trim():rest;
