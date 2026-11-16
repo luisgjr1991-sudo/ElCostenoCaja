@@ -175,7 +175,20 @@ function generalEdit(raw){
  if(remove&&targets.some(i=>Object.entries(items).some(([k,q])=>(orderPlates[i].items[k]||0)<q)))return {error:"No hay suficientes tacos de ese guiso para quitar."};
  return {mode:"adjustMany",targets,items,sign:remove?-1:1};
 }
+function trailingPlateEdit(raw){
+ const t=clean(raw,true).replace(/\b(?:agregale|ponle|echale|sumale|metele)\b/g,"agrega").replace(/\b(?:quitale|sacale|restale|retirale)\b/g,"quita");
+ const rx=new RegExp("^(?:agrega|quita)\\s+"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"\\s+(?:al\\s+|del\\s+|en\\s+el\\s+|a\\s+el\\s+)(?:plato\\s+)?(primero|segundo|tercero|cuarto|quinto|ultimo|\\d+|uno|dos|tres|cuatro|cinco)$");
+ const m=t.match(rx);if(!m)return null;
+ const ord={primero:0,segundo:1,tercero:2,cuarto:3,quinto:4,ultimo:orderPlates.length-1};
+ const i=Object.hasOwn(ord,m[3])?ord[m[3]]:n(m[3])-1;
+ if(i<0||i>=orderPlates.length)return {error:"No existe el plato indicado."};
+ const qty=n(m[1]),key=keyOf(m[2]),delta=(t.startsWith("quita")?-1:1)*qty;
+ if(qty<1||qty>100)return {error:"Cantidad no válida."};
+ if(delta<0&&(orderPlates[i].items[key]||0)<qty)return {error:"No hay suficientes tacos para quitar."};
+ return {mode:"adjust",index:i,key,delta};
+}
 function editCommand(raw){
+ const trailing=trailingPlateEdit(raw);if(trailing)return trailing;
  const generalized=generalEdit(raw);if(generalized)return generalized;
  const t=clean(raw,true);
  const flavorItem=new RegExp("^"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"$");
