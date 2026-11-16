@@ -886,6 +886,13 @@ header{padding-top:44px!important}
   update();
   window.scrollTo(0,0);
  }
+ const menu=document.createElement('div');
+ menu.id='ecReportsMenu';
+ menu.innerHTML='<button type="button" id="ecHistoryShortcut">🕘 Historial de ventas</button><button type="button" id="ecCutShortcut">📊 Corte de ventas</button>';
+ menu.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin:12px 0';
+ $('ajustes').prepend(menu);
+ $('ecHistoryShortcut').onclick=()=>navigate('historial');
+ $('ecCutShortcut').onclick=()=>navigate('cortes');
  $('ecTopGear').onclick=()=>{origin=active();navigate('ajustes')};
  function back(){
   if(!$('settingsDetail').classList.contains('hidden')&&active()==='ajustes'){$('settingsBack').click();update();return}
