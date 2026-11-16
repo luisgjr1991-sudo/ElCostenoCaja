@@ -5,7 +5,7 @@ const norm=x=>String(x||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u03
 const numbers={un:1,uno:1,una:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,once:11,doce:12,trece:13,catorce:14,quince:15,dieciseis:16,diecisiete:17,dieciocho:18,diecinueve:19,veinte:20};
 const n=x=>/^\d+$/.test(x)?Number(x):numbers[x]||0;
 const number="(\\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)";
-const flavors="(carne asada|carne|frijoles?|chicharrones?|chicharron|machaca|asada)";
+const flavors="(carne asada|carne|frijol(?:es)?|chicharrones?|chicharron|machaca|asada)";
 function clean(raw){
  let t=norm(raw);
  const rules=[
