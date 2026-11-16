@@ -332,7 +332,7 @@ let orderPlates=[];
 function addPlate(items){orderPlates.push({id:Date.now()+Math.random(),items:{...items}});for(const [key,n] of Object.entries(items))orderQty[key]=(orderQty[key]||0)+n}
 function parsePlateSpeech(raw){
  const normalized=spokenNormalize(raw).replace(/[,.!?;:]/g,' ').replace(/\s+/g,' ').trim();
- const countWords='(?:\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)';
+ const countWords='(?:\\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)';
  const number=s=>spokenCount(s)||0;
  const names=orderStewNames();
  const stew=s=>{if(/carne asada|\basada\b/.test(s))return names[3];if(/\bmachaca\b/.test(s))return names[3];if(/\bfrijol(?:es)?\b/.test(s))return 'Frijol';if(/\bchicharron\b/.test(s))return 'Chicharrón';if(/\bcarne\b/.test(s))return 'Carne';return null};
@@ -389,7 +389,7 @@ function applySpokenOrder(transcript){
   if(n.includes(' ')){const w=n.split(' ');forms.add([w[0]+'s',...w.slice(1)].join(' '))}
   return [...forms].map(alias=>({alias,p}));
  }).sort((a,b)=>b.alias.length-a.alias.length);
- const escRegex=s=>s.replace(/[.*+?^$()|[\]{}\\]/g,'\\$&');
+ const escRegex=s=>s.replace(/[^a-z0-9 ]/g,'');
  for(const {alias,p} of aliases){
   if(/^(tacos?|bebidas?|refrescos?)$/.test(alias))continue;
   const re=new RegExp('\\b('+quantity+')\\s+(?:(?:de|del|las|los)\\s+)?'+escRegex(alias)+'\\b','g');
