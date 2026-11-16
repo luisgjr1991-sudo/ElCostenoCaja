@@ -470,9 +470,9 @@ public class MainActivity extends Activity {
   @Override public void onBackPressed() {
     if(web==null){super.onBackPressed();return;}
     web.evaluateJavascript("window.costenoAndroidBack ? window.costenoAndroidBack() : 'exit'",result->{
-      if("\\"exit\\"".equals(result)){
+      if(result != null && result.contains("exit")){
         MainActivity.super.onBackPressed();
-      }else if("\\"again\\"".equals(result)){
+      }else if(result != null && result.contains("again")){
         Toast.makeText(MainActivity.this,"Presiona otra vez para salir",Toast.LENGTH_SHORT).show();
       }
     });
