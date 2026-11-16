@@ -409,16 +409,16 @@ function parsePlateSpeech(raw){
  return {plates,notes:''};
 }
 function editPlatesByVoice(raw){
- const t=spokenNormalize(raw);
+ const t=spokenNormalize(raw).replace(/\bplantos?\b/g,'plato').replace(/\bplatos?\b/g,'plato');
  const count='(\\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)';
  const n=w=>spokenCount(w)||0;
  const keyOf=w=>{if(/chicharron/.test(w))return 'Chicharrón';if(/frijol/.test(w))return 'Frijol';if(/machaca|asada/.test(w))return orderStewNames()[3];if(/carne/.test(w))return 'Carne';return null};
  const flavor='(carne|frijol(?:es)?|chicharron|machaca|asada)';
- const action=/\b(?:agrega(?:r|le|les)?|anade(?:r|le|les)?|pon(?:er|le|les)?|suma(?:r|le|les)?|quita(?:r|le|les)?|retira(?:r|le|les)?|resta(?:r|le|les)?|cambia(?:r|le|les)?|sustituye|reemplaza)\b/.test(t);
+ const action=/\b(?:agrega(?:r|le|les|do|dos|da|das)?|agregale|agregales|anade(?:r|le|les|do)?|pon(?:er|le|les)?|suma(?:r|le|les|do)?|quita(?:r|le|les|do)?|retira(?:r|le|les|do)?|resta(?:r|le|les|do)?|cambia(?:r|le|les|do)?|sustituye|reemplaza)\b/.test(t);
  if(!action)return null;
  if(!orderPlates.length)return {found:0,warning:'Primero crea los platos para poder modificarlos.',notes:raw};
  let targets=[];
- if(/\b(?:cada\s+plato|todos\s+los\s+platos|a\s+todos|en\s+todos)\b/.test(t))targets=orderPlates.map((_,i)=>i);
+ if(/\b(?:cada\s+plato|todos\s+los\s+plato|a\s+todos|en\s+todos)\b/.test(t))targets=orderPlates.map((_,i)=>i);
  else{
   const m=t.match(new RegExp('(?:platos?|al|en\\s+el)\\s*'+count+'\\b'));
   if(m)targets=[n(m[1])-1];
