@@ -353,13 +353,13 @@ function costenoNormalizeSpeech(raw){
  let t=spokenNormalize(raw);
  const replacements=[
   [/\b(?:echame|echale|avientame|aventame|preparame|sirveme|armame|dejame|dame|pasame|ponme|mandame|ocupo|necesito|quiero|me das|me pones|me preparas|me armas|me echas|me avientas|me mandas|me regalas)\b/g,' '],
-  [/\b(?:platitos|platillos|platotes|platito|platillo|platoz|plantos|plantos)\b/g,'platos'],
-  [/\b(?:taquitos|taquito|taquillos|taquillo|taquitos)\b/g,'tacos'],
+  [/\b(?:platitos|platillos|platotes|platito|platillo|platoz|plantos)\b/g,'platos'],
+  [/\b(?:taquitos|taquito|taquillos|taquillo)\b/g,'tacos'],
   [/\b(?:carnita|carnitas)\b/g,'carne'],
-  [/\b(?:frijolitos|frijolito|frijolitos|frijolitos)\b/g,'frijol'],
+  [/\b(?:frijolitos|frijolito)\b/g,'frijol'],
   [/\b(?:chicharroncito|chicharroncitos|chicharon|chicharones)\b/g,'chicharron'],
   [/\b(?:machacita|machacadito)\b/g,'machaca'],
-  [/\b(?:igualitas|igualitos|igualitas|igualito)\b/g,'igual'],
+  [/\b(?:igualitas|igualitos|igualito)\b/g,'igual'],
   [/\b(?:cada quien|cada cual|por plato|por cada plato|en cada plato|cada uno de ellos)\b/g,'cada uno'],
   [/\b(?:un par de|un par|par de)\b/g,'dos'],
   [/\b(?:media docena de|media docena)\b/g,'seis'],
