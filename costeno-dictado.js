@@ -34,28 +34,33 @@ function keyOf(x){
 }
 function sequential(raw){
  const t=clean(raw);
- const head=t.match(new RegExp("^(?:"+number+"\\s+platos?\\s+(?:de\\s+tacos?\\s+)?)"));
+ const head=t.match(new RegExp("^"+number+"\\s+platos?(?:\\s+de\\s+tacos?)?\\s*"));
  if(!head)return null;
  const count=n(head[1]);if(count<1||count>50)return {error:"Revisa el número de platos."};
  const body=t.slice(head[0].length).trim();
- const separators=/\b(?:y\s+)?en\s+(?:un|uno|otro|el\s+primer|el\s+segundo|el\s+tercer|el\s+ultimo)\s+plato\b/g;
- const starts=[...body.matchAll(separators)];
- if(!starts.length)return null;
- if(body.slice(0,starts[0].index).trim())return null;
- if(starts.length!==count)return {error:"Escuché "+count+" platos, pero describiste "+starts.length+". Revisa el dictado."};
+ // "en un plato", "en otro plato", "en el primero", "en el segundo", "y en el tercero".
+ const boundary=/\b(?:y\s+)?(?:en\s+)?(?:(?:un|uno|otro|el\s+otro|el\s+primer|el\s+primero|el\s+segundo|el\s+tercero|el\s+tercer|el\s+ultimo|la\s+primera|la\s+segunda)\s+plato|(?:el\s+)?(?:primero|segundo|tercero|ultimo))\b/g;
+ const matches=[...body.matchAll(boundary)];
+ if(!matches.length)return null;
+ const prefix=body.slice(0,matches[0].index).trim();
+ if(prefix&&!/^(?:y|pues|entonces|de tacos|separados)$/.test(prefix))return null;
+ if(matches.length!==count)return {error:"Escuché "+count+" platos, pero describiste "+matches.length+". Revisa el dictado."};
  const plates=[];
- for(let i=0;i<starts.length;i++){
-  const begin=starts[i].index+starts[i][0].length;
-  let segment=body.slice(begin,i+1<starts.length?starts[i+1].index:undefined).replace(/^(?:me\s+)?(?:pones|pon|echas|echa|sirves|sirve|quiero|con|de)\s+/,"").replace(/\s+y\s*$/,"").trim();
-  const itemRx=new RegExp("^"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"(?=\\s+y\\s+|$)");
+ for(let i=0;i<matches.length;i++){
+  let segment=body.slice(matches[i].index+matches[i][0].length,i+1<matches.length?matches[i+1].index:undefined)
+   .replace(/^(?:(?:me|le|les)\s+)?(?:pones|pon|echas|echa|sirves|sirve|quiero|lleva|con|de)\s+/,"")
+   .replace(/\s+y\s*$/,"").trim();
   const items={};
+  const itemRx=new RegExp("^"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"(?=\\s+y\\s+|$)");
   while(segment){
-   const m=segment.match(itemRx);if(!m)return {error:"No entendí los guisos del plato "+(i+1)+". Revisa el dictado."};
+   const m=segment.match(itemRx);
+   if(!m)return {error:"No entendí los guisos del plato "+(i+1)+". Revisa el dictado."};
    const amount=n(m[1]);if(amount<1||amount>100)return {error:"Cantidad no válida en plato "+(i+1)+"."};
-   if(/\basada\b/.test(m[2])&&orderStewNames()[3]!=="Carne asada")return {error:"Escuché carne asada, pero hoy aparece Machaca. Revisa el día o el guiso."};
-   const key=keyOf(m[2]);items[key]=(items[key]||0)+amount;
+   if(/\basada\b/.test(m[2])&&orderStewNames()[3]!=="Carne asada")return {error:"Escuché asada, pero el guiso del día es Machaca."};
+   const k=keyOf(m[2]);items[k]=(items[k]||0)+amount;
    segment=segment.slice(m[0].length).replace(/^\s+y\s+/,"").trim();
   }
+  if(!Object.keys(items).length)return {error:"No reconocí el contenido del plato "+(i+1)+"."};
   plates.push(items);
  }
  return {mode:"replace",plates};
