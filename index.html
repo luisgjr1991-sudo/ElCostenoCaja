@@ -355,7 +355,7 @@ function interpretOrderNotes(){
  const el=$('orderNotes'),raw=el.value.trim();
  if(!raw||raw===orderLastInterpreted)return;
  const result=applySpokenOrder(raw);
- if(result.found){orderLastInterpreted=raw;el.value=result.notes||'';$('orderVoiceStatus').textContent=result.message||'Pedido interpretado: '+result.found+' tacos o productos. Revisa los platos antes de imprimir.'}
+ if(result.found){orderLastInterpreted=raw;if(result.notes)el.value=result.notes;$('orderVoiceStatus').textContent=result.message||'Pedido interpretado: '+result.found+' tacos o productos. Revisa los platos antes de imprimir.'}
  else $('orderVoiceStatus').textContent=result.warning||'No se identificaron cantidades. Usa frases como: cinco platos, uno con carne, otro con machaca y frijol, otro con frijol y chicharrón, otros dos surtidos.';
 }
 $('orderInterpret').onclick=interpretOrderNotes;
@@ -508,6 +508,9 @@ function applySpokenOrder(transcript){
   return {found:plate.plates.reduce((n,p)=>n+Object.values(p).reduce((a,b)=>a+b,0),0),notes:''};
  }
  const normalized=spokenNormalize(raw);
+ // Si se mencionan platos pero no se puede construir el emplatado completo,
+ // nunca convertir el dictado en tacos sueltos ni alterar los contadores.
+ if(/\b(?:platos?|plantos?)\b/.test(normalized)&&/\b(?:uno|un|otro|otra|con|surtido|surtidos)\b/.test(normalized))return {found:0,notes:raw,warning:'No pude separar los platos. Corrige el texto y vuelve a interpretar; no se agregaron tacos.'};
  const quantity='(?:\\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)';
  let unmatched=normalized,found=0;
  const assort=new RegExp('\\b('+quantity+')\\s+(?:platos?\\s+|ordenes?\\s+)?(?:de\\s+)?surtidos?\\b','g');
