@@ -362,7 +362,7 @@ function parsePlateSpeech(raw){
  const leftover=/\b(?:(?:y\s+)?(?:(?:los|las)\s+)?(?:(?:otros?|otras?)\s+)?(?:demas|restantes|que\s+(?:queden|faltan|restan)|(?:el\s+)?resto|resto\s+de\s+(?:los|las))|(?:y\s+)?(?:el\s+)?resto)\s+(?:platos?\s+)?(?:van\s+|seran\s+|son\s+|con\s+|de\s+)?surtidos?\b/;
  const leftoverMatch=rest.match(leftover);
  if(leftoverMatch)rest=rest.slice(0,leftoverMatch.index).trim();
- const boundaries=/(?=\b(?:(?:uno|una|un|otro|otra)\s+(?:plato\s+)?con\b|(?:otro|otra)\s+surtido\b|(?:otros|otras)\s+(?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+(?:platos?\s+)?(?:con\s+)?surtidos?\b|(?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+(?:platos?\s+)?(?:con\s+)?surtidos?\b|(?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+platos?\s+con\b))/g;
+ const boundaries=/(?=\b(?:(?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\\d+)\\s+con\\s+(?=(?:\\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve)\\s+(?:de\\s+)?(?:carne|frijol|chicharron|machaca|asada)\\b)|(?:uno|una|un|otro|otra)\s+(?:plato\s+)?con\b|(?:otro|otra)\s+surtido\b|(?:otros|otras)\s+(?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+(?:platos?\s+)?(?:con\s+)?surtidos?\b|(?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+(?:platos?\s+)?(?:con\s+)?surtidos?\b|(?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+platos?\s+con\b))/g;
  const positions=[...rest.matchAll(boundaries)].map(m=>m.index).filter((v,i,a)=>i===0||v!==a[i-1]);
  const segments=positions.map((p,i)=>rest.slice(p,positions[i+1]??rest.length).replace(/^y\s+/,'').trim());
  const plates=[],assorted=()=>Object.fromEntries(names.map(k=>[k,1]));
@@ -374,8 +374,8 @@ function parsePlateSpeech(raw){
   return null;
  };
  for(let segment of segments){
-  const implicitGroup=segment.match(new RegExp('^('+numberWord+')\\\\s+con\\\\s+(?='+numberWord+'\\\\s+(?:tacos?\\\\s+)?(?:de\\\\s+)?(?:carne|frijol|chicharron|machaca|asada)\\\\b)'));
- if(implicitGroup)segment=segment.replace(new RegExp('^('+numberWord+')\\\\s+con\\\\s+'),'$1 platos con ');
+  const implicitGroup=segment.match(new RegExp('^('+numberWord+')\\s+con\\s+(?='+numberWord+'\\s+(?:tacos?\\s+)?(?:de\\s+)?(?:carne|frijol|chicharron|machaca|asada)\\b)'));
+ if(implicitGroup)segment=segment.replace(new RegExp('^('+numberWord+')\\s+con\\s+'),'$1 platos con ');
  const multi=segment.match(new RegExp('^(?:(?:otros?|otras?)\\s+)?('+numberWord+')\\s+(?:platos?\\s+)?(?:(?:con|de)\\s+)?surtidos?\\b'));
   if(multi){const n=num(multi[1]);if(n<1||n>50)return {error:'Cantidad de surtidos inválida.',notes:raw};for(let i=0;i<n;i++)plates.push(assorted());continue}
   if(/^(?:otro|otra|un|uno|una)\s+(?:(?:con|de)\s+)?surtido\b/.test(segment)){plates.push(assorted());continue}
