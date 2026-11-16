@@ -191,7 +191,8 @@ function trailingPlateEdit(raw){
 // Edit commands with flexible word order, including empty plate creation.
 function flexibleEdit(raw){
  const t=clean(raw,true).replace(/\b(?:agregame|agregale|anade|anademe|echame|avientame|ponme|ponle|metele|sumale|dame|preparame)\b/g,"agrega")
- .replace(/\b(?:quitame|quitale|sacale|sacame|borra|elimina|retira|restale)\b/g,"quita")
+ .replace(/\b(?:agregar|anadir|sumar|poner|echar)\b/g,"agrega")
+ .replace(/\b(?:quitame|quitale|sacale|sacame|borra|elimina|retira|restale|quitar)\b/g,"quita")
  .replace(/\b(?:otro|otra)\s+(?:plato|platito)\b/g,"un plato")
  .replace(/\b(?:tacos|taquitos)\b/g,"tacos").trim();
  const qtyRe=number;
