@@ -169,7 +169,7 @@ function editCommand(raw){
   return {mode:"append",plates:Array.from({length:count},()=>({...items}))};
  }
  // Remove an entire plate by number, ordinal or "último".
- const del=t.match(/^(?:quita|quitame|elimina|borra|retira|saca)\s+(?:el\s+)?(?:plato\s+)?(primero|segundo|tercero|cuarto|quinto|ultimo|\d+|uno|dos|tres|cuatro|cinco)$/);
+ const del=t.match(/^(?:quita|quitame|elimina|borra|retira|saca)\s+(?:el\s+)?(?:plato\s+)?(primero|segundo|tercero|cuarto|quinto|ultimo|\d+|uno|dos|tres|cuatro|cinco)(?:\s+plato)?$/);
  if(del){
   const ix={primero:0,segundo:1,tercero:2,cuarto:3,quinto:4,ultimo:orderPlates.length-1}[del[1]]??n(del[1])-1;
   if(ix<0||ix>=orderPlates.length)return {error:"No existe ese plato."};
