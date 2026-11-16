@@ -467,5 +467,14 @@ public class MainActivity extends Activity {
     }
   }
   @Override protected void onDestroy() { synchronized(cashAudioLock) { if(cashTone!=null){cashTone.release();cashTone=null;} } super.onDestroy(); }
-  @Override public void onBackPressed() { if(web.canGoBack())web.goBack();else super.onBackPressed(); }
+  @Override public void onBackPressed() {
+    if(web==null){super.onBackPressed();return;}
+    web.evaluateJavascript("window.costenoAndroidBack ? window.costenoAndroidBack() : 'exit'",result->{
+      if("\\"exit\\"".equals(result)){
+        MainActivity.super.onBackPressed();
+      }else if("\\"again\\"".equals(result)){
+        Toast.makeText(MainActivity.this,"Presiona otra vez para salir",Toast.LENGTH_SHORT).show();
+      }
+    });
+  }
 }
