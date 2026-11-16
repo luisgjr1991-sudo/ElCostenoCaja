@@ -32,6 +32,37 @@ function keyOf(x){
  if(/machaca|asada/.test(x))return orderStewNames()[3];
  return "Carne";
 }
+
+// Interpret separately described plates before any legacy uniform-plate fallback.
+function distinctPlates(raw){
+ const t=clean(raw);
+ const head=t.match(new RegExp("^"+number+"\\s+platos?(?:\\s+de\\s+tacos?)?\\b"));
+ if(!head)return null;
+ const count=n(head[1]);if(count<2||count>50)return null;
+ const body=t.slice(head[0].length).trim();
+ const boundary=/\b(?:(?:y\s+)?(?:en\s+)?(?:(?:el|al|en el|para el|en|para|un|uno|otro|otro\s+plato|el otro)\s+)?(?:plato\s+)?(?:primero|primer|segundo|tercero|tercer|cuarto|quinto|ultimo)|(?:y\s+)?(?:en\s+|para\s+)?(?:un|uno|otro|el otro)\s+plato|(?:y\s+)?(?:en\s+)?(?:el\s+)?(?:primero|segundo|tercero|cuarto|quinto))\b/g;
+ const marks=[...body.matchAll(boundary)].filter(m=>!/\b(?:otro plato)\b/.test(m[0])||true);
+ if(marks.length!==count)return null;
+ const before=body.slice(0,marks[0].index);
+ if(/\b(?:carne|frijol|chicharron|machaca|asada)\b/.test(before))return null;
+ const plates=[];
+ const itemRe=new RegExp("\\b"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"\\b","g");
+ for(let i=0;i<count;i++){
+  const part=body.slice(marks[i].index+marks[i][0].length,i+1<count?marks[i+1].index:undefined);
+  const items={},matches=[...part.matchAll(itemRe)];
+  if(!matches.length)return null;
+  for(const m of matches){
+   const q=n(m[1]);if(q<1||q>100)return null;
+   if(/\basada\b/.test(m[2])&&orderStewNames()[3]!=="Carne asada")return {error:"El guiso de hoy es Machaca, no Carne asada."};
+   const k=keyOf(m[2]);items[k]=(items[k]||0)+q;
+  }
+  // Reject stray numeric/flavor expressions rather than silently losing them.
+  const residue=part.replace(itemRe," ").replace(/\b(?:y|con|de|tacos?|me|le|les|pones|pon|ponle|echas|echa|quiero|lleva|lleve|que|sean|seran|van|a|ir|tres|dos)\b/g," ").trim();
+  if(/\b(?:carne|frijol|chicharron|machaca|asada|\d+)\b/.test(residue))return null;
+  plates.push(items);
+ }
+ return {mode:"replace",plates};
+}
 function sequential(raw){
  const t=clean(raw);
  const head=t.match(new RegExp("^"+number+"\\s+platos?(?:\\s+de\\s+tacos?)?\\s*"));
@@ -157,6 +188,7 @@ function editCommand(raw){
 }
 function parse(raw){
  const edit=editCommand(raw);if(edit)return edit;
+ const distinct=distinctPlates(raw);if(distinct)return distinct;
  const ordered=sequential(raw);if(ordered)return ordered;
  const t=clean(raw);
  // Completo: N platos con X de carne y Y de frijol, cada uno.
