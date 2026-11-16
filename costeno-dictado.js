@@ -189,6 +189,14 @@ const previous=applySpokenOrder;
 applySpokenOrder=function(transcript){
  const result=parse(transcript);
  if(!result){
+  // Reject ambiguous mixed-stew multi-plate orders instead of duplicating a single stew.
+  const safetyText=clean(transcript);
+  const safetyNamed=[...safetyText.matchAll(/\b(?:carne asada|chicharron(?:es)?|frijol(?:es)?|machaca|carne|asada)\b/g)].map(m=>keyOf(m[0]));
+  const safetyRefs=[...safetyText.matchAll(/\b(?:plato|primero|segundo|tercero|cuarto|otro plato|en otro|en uno)\b/g)].length;
+  const safetyHead=safetyText.match(new RegExp("^"+number+"\\s+platos?"));
+  if(((safetyHead&&n(safetyHead[1])>1)||safetyRefs>1)&&new Set(safetyNamed).size>1){
+   return {found:0,notes:transcript,warning:"Detecté distintos guisos y platos, pero no pude distribuirlos con seguridad. No modifiqué el pedido. Dicta cada plato por separado o revisa la frase."};
+  }
   // Evitar que el intérprete anterior invente Carne cuando se nombraron otros guisos.
   const heard=clean(transcript);
   const explicitlyOther=/\b(?:frijol(?:es)?|chicharron(?:es)?|machaca|asada)\b/.test(heard);
