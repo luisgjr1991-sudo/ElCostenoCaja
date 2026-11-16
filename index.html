@@ -366,6 +366,9 @@ function parsePlateSpeech(raw){
  const suspectedAssorted=/\b(?:los|las)\s+(?:otros?\s+)?(?:que\s+)?(?:restan|quedan|faltan|restantes|demas)\s+sentidos?\b/.test(rest);
  if(suspectedAssorted)rest=rest.replace(/\bsentidos?\b/g,'surtidos');
  const leftover=/\b(?:(?:y\s+)?(?:(?:los|las)\s+)?(?:(?:otros?|otras?)\s+)?(?:demas|restantes|que\s+(?:queden|faltan|restan)|(?:el\s+)?resto|resto\s+de\s+(?:los|las))|(?:y\s+)?(?:el\s+)?resto)\s+(?:platos?\s+)?(?:van\s+|seran\s+|son\s+|con\s+|de\s+)?surtidos?\b/;
+ const remainderGuiso=/\b(?:y\s+)?(?:los|las)\s+(?:otros?|otras?|demas|restantes|que\s+(?:quedan|faltan|restan))\s+(?:platos?\s+)?(?:con|de)\s+(\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+(?:tacos?\s+)?(?:de\s+)?(carne|frijol(?:es)?|chicharron|machaca|asada)(?:\s+cada\s+uno)?\b/;
+ const remainderMatch=rest.match(remainderGuiso);
+ if(remainderMatch)rest=rest.slice(0,remainderMatch.index).trim();
  const leftoverMatch=rest.match(leftover);
  if(suspectedAssorted)return {error:'¿Quisiste decir «los que restan surtidos»? Corrige «sentidos» por «surtidos» para confirmar.',notes:raw};
  if(leftoverMatch)rest=rest.slice(0,leftoverMatch.index).trim();
@@ -402,6 +405,11 @@ function parsePlateSpeech(raw){
    if(key&&qty>0)items[key]=(items[key]||0)+qty;
   }
   if(Object.keys(items).length)for(let i=0;i<repetitions;i++)plates.push({...items});
+ }
+ if(remainderMatch){
+  const amount=num(remainderMatch[1]),flavor=kindOf(remainderMatch[2]);
+  if(!amount||!flavor||plates.length>=expected)return {error:'No pude identificar cuántos platos restantes deben llevar ese guiso.',notes:raw};
+  while(plates.length<expected)plates.push({[flavor]:amount});
  }
  if(leftoverMatch&&plates.length===0&&/\b(?:carne|frijol|chicharron|machaca|asada)\b/.test(rest))return {error:'No pude identificar los platos con guiso. Revisa el dictado antes de completar los surtidos.',notes:raw};
  if(leftoverMatch&&plates.length<expected)while(plates.length<expected)plates.push(assorted());
