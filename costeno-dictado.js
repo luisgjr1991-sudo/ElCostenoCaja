@@ -162,14 +162,14 @@ function generalEdit(raw){
  // Targeting a specific plate: "al segundo agrégale dos de frijol".
  const ord={primero:0,primer:0,segundo:1,tercero:2,tercer:2,cuarto:3,quinto:4,ultimo:orderPlates.length-1};
  const target=t.match(/\b(?:plato\s+|al\s+|del\s+|en\s+el\s+|el\s+)(primero|primer|segundo|tercero|tercer|cuarto|quinto|ultimo|\d+|uno|dos|tres|cuatro|cinco)\b/);
- const all=/\b(?:a\s+todos(?:\s+los\s+platos)?|en\s+todos(?:\s+los\s+platos)?|todos\s+los\s+platos|cada\s+plato|cada\s+uno)\b/.test(t);
+ const all=/\b(?:a\s+todos(?:\s+los\s+platos)?|en\s+todos(?:\s+los\s+platos)?|todos\s+los\s+platos|cada\s+plato|cada\s+uno|a\s+cada\s+uno)\b/.test(t);
  const targets=all?orderPlates.map((_,i)=>i):target?[Object.hasOwn(ord,target[1])?ord[target[1]]:n(target[1])-1]:[];
  if(!targets.length)return null;
  if(targets.some(i=>i<0||i>=orderPlates.length))return {error:"No existe el plato indicado."};
  let stripped=t.replace(/\b(?:agrega|quita)\b/g,"")
   .replace(/\b(?:plato\s+|al\s+|del\s+|en\s+el\s+|el\s+)(?:primero|primer|segundo|tercero|tercer|cuarto|quinto|ultimo|\d+|uno|dos|tres|cuatro|cinco)\b/g,"")
   .replace(/\b(?:a\s+todos(?:\s+los\s+platos)?|en\s+todos(?:\s+los\s+platos)?|todos\s+los\s+platos|cada\s+plato|cada\s+uno)\b/g,"")
-  .replace(/\b(?:le|les|me|unos|unas|con|de|mas)\b/g," ").replace(/\s+/g," ").trim();
+  .replace(/\b(?:le|les|me|unos|unas|con|de|mas|a)\b/g," ").replace(/\s+/g," ").trim();
  const items=parseItems(stripped);
  if(!items)return null;
  if(remove&&targets.some(i=>Object.entries(items).some(([k,q])=>(orderPlates[i].items[k]||0)<q)))return {error:"No hay suficientes tacos de ese guiso para quitar."};
