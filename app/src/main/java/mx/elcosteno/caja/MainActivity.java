@@ -75,13 +75,16 @@ public class MainActivity extends Activity {
   }
 
   public class SpeechBridge {
-    @JavascriptInterface public void start() {
+    @JavascriptInterface public void start(String fieldLabel) {
       ui.post(() -> {
         try {
           Intent intent=new Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
           intent.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
           intent.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE,"es-MX");
-          intent.putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT,"Di nombre, teléfono y dirección del cliente");
+          intent.putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT,"Dicta "+(fieldLabel==null?"el dato":fieldLabel)+". Puedes repetir para continuar.");
+          intent.putExtra(android.speech.RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,12000L);
+          intent.putExtra(android.speech.RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,8000L);
+          intent.putExtra(android.speech.RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS,15000L);
           intent.putExtra(android.speech.RecognizerIntent.EXTRA_MAX_RESULTS,1);
           startActivityForResult(intent,SPEECH_REQUEST);
         }catch(Exception e){
