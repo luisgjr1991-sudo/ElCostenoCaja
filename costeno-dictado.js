@@ -32,7 +32,36 @@ function keyOf(x){
  if(/machaca|asada/.test(x))return orderStewNames()[3];
  return "Carne";
 }
+function sequential(raw){
+ const t=clean(raw);
+ const head=t.match(new RegExp("^(?:"+number+"\\s+platos?\\s+(?:de\\s+tacos?\\s+)?)"));
+ if(!head)return null;
+ const count=n(head[1]);if(count<1||count>50)return {error:"Revisa el número de platos."};
+ const body=t.slice(head[0].length).trim();
+ const separators=/\b(?:y\s+)?en\s+(?:un|uno|otro|el\s+primer|el\s+segundo|el\s+tercer|el\s+ultimo)\s+plato\b/g;
+ const starts=[...body.matchAll(separators)];
+ if(!starts.length)return null;
+ if(body.slice(0,starts[0].index).trim())return null;
+ if(starts.length!==count)return {error:"Escuché "+count+" platos, pero describiste "+starts.length+". Revisa el dictado."};
+ const plates=[];
+ for(let i=0;i<starts.length;i++){
+  const begin=starts[i].index+starts[i][0].length;
+  let segment=body.slice(begin,i+1<starts.length?starts[i+1].index:undefined).replace(/^(?:me\s+)?(?:pones|pon|echas|echa|sirves|sirve|quiero|con|de)\s+/,"").replace(/\s+y\s*$/,"").trim();
+  const itemRx=new RegExp("^"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"(?=\\s+y\\s+|$)");
+  const items={};
+  while(segment){
+   const m=segment.match(itemRx);if(!m)return {error:"No entendí los guisos del plato "+(i+1)+". Revisa el dictado."};
+   const amount=n(m[1]);if(amount<1||amount>100)return {error:"Cantidad no válida en plato "+(i+1)+"."};
+   if(/\basada\b/.test(m[2])&&orderStewNames()[3]!=="Carne asada")return {error:"Escuché carne asada, pero hoy aparece Machaca. Revisa el día o el guiso."};
+   const key=keyOf(m[2]);items[key]=(items[key]||0)+amount;
+   segment=segment.slice(m[0].length).replace(/^\s+y\s+/,"").trim();
+  }
+  plates.push(items);
+ }
+ return {mode:"replace",plates};
+}
 function parse(raw){
+ const ordered=sequential(raw);if(ordered)return ordered;
  const t=clean(raw);
  // Completo: N platos con X de carne y Y de frijol, cada uno.
  const head=t.match(new RegExp("^"+number+"\\s+platos?\\s+(?:con|de|que lleven)\\s+"));
