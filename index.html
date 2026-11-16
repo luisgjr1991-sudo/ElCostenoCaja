@@ -328,70 +328,98 @@ document.addEventListener('click',e=>{
 const spokenNumbers={un:1,uno:1,una:1,unos:1,unas:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,once:11,doce:12,trece:13,catorce:14,quince:15,dieciseis:16,diecisiete:17,dieciocho:18,diecinueve:19,veinte:20,veintiuno:21,veintidos:22,veintitres:23,veinticuatro:24,veinticinco:25,veintiseis:26,veintisiete:27,veintiocho:28,veintinueve:29,treinta:30,cuarenta:40,cincuenta:50,sesenta:60,setenta:70,ochenta:80,noventa:90,cien:100};
 const spokenNormalize=t=>String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
 function spokenCount(words){const a=words.trim().split(/\s+/);if(!a[0])return null;let first=spokenNumbers[a[0]];if(first==null&&/^\d+$/.test(a[0]))first=Number(a[0]);if(first==null)return null;if(a.length===1)return first;if(a.length===3&&a[1]==='y'&&spokenNumbers[a[2]]!=null&&first>=30&&first<=90)return first+spokenNumbers[a[2]];return null}
+let orderPlates=[];
+function addPlate(items){orderPlates.push({id:Date.now()+Math.random(),items:{...items}});for(const [key,n] of Object.entries(items))orderQty[key]=(orderQty[key]||0)+n}
+function parsePlateSpeech(raw){
+ const normalized=spokenNormalize(raw).replace(/[,.!?;:]/g,' ').replace(/\s+/g,' ').trim();
+ const countWords='(?:\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)';
+ const number=s=>spokenCount(s)||0;
+ const names=orderStewNames();
+ const stew=s=>{if(/carne asada|\basada\b/.test(s))return names[3];if(/\bmachaca\b/.test(s))return names[3];if(/\bfrijol(?:es)?\b/.test(s))return 'Frijol';if(/\bchicharron\b/.test(s))return 'Chicharrón';if(/\bcarne\b/.test(s))return 'Carne';return null};
+ const platePattern=new RegExp('\\b('+countWords+')\\s+platos?\\b');
+ const header=normalized.match(platePattern);
+ if(!header)return null;
+ let rest=normalized.slice(header.index+header[0].length).trim();
+ let segments=rest.split(/\s+(?=(?:otro(?:s)?|otra(?:s)?|uno|una|un|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+(?:con|de|surtidos?\b))/).filter(Boolean);
+ if(segments.length===1)segments=rest.split(/\s+(?=otro(?:s)?\s+(?:con|de|surtidos?\b))/).filter(Boolean);
+ const plates=[];
+ for(let segment of segments){
+  segment=segment.replace(/^(?:y\s+)?/,'').trim();
+  let multi=segment.match(new RegExp('^(?:otros?\\s+|otras?\\s+)?('+countWords+')\\s+(?:platos?\\s+)?(?:con\\s+|de\\s+)?surtidos?\\b'));
+  if(!multi)multi=segment.match(new RegExp('^(?:otros?\\s+|otras?\\s+)?('+countWords+')\\s+(?:con\\s+)?surtidos?\\b'));
+  if(multi){const n=number(multi[1]);if(n>0&&n<=50)for(let j=0;j<n;j++)plates.push(Object.fromEntries(names.map(k=>[k,1])));continue}
+  if(/^(?:otros?|otras?)\s+surtidos?\b/.test(segment)){plates.push(Object.fromEntries(names.map(k=>[k,1])));continue}
+  segment=segment.replace(/^(?:otro|otra|uno|una|un)\s+(?:con|de)\s+/,'').replace(/^con\s+/,'');
+  const parts=segment.split(/\s+y\s+|,/).map(x=>x.trim()).filter(Boolean);
+  const items={};
+  for(let part of parts){
+   let m=part.match(new RegExp('^('+countWords+')\\s+(?:tacos?\\s+)?(?:de\\s+)?(.+)$'));
+   const qty=m?number(m[1]):1;
+   const key=stew(m?m[2]:part);
+   if(key&&qty>0)items[key]=(items[key]||0)+qty;
+  }
+  if(Object.keys(items).length)plates.push(items);
+ }
+ const expected=number(header[1]);
+ if(!plates.length||plates.length!==expected)return {error:'Se reconocieron '+plates.length+' platos de '+expected+'. Revisa el dictado antes de agregar.',notes:raw};
+ return {plates,notes:''};
+}
 function applySpokenOrder(transcript){
- const raw=String(transcript||'').trim(),normalized=spokenNormalize(raw);
- const pattern=/(\b(?:\d+|un|uno|una|unos|unas|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte|veinti(?:uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve)|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien)(?:\s+y\s+(?:uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve))?)\s+(?:(?:tacos?|taquitos?|orden(?:es)?|vasos?|botellas?|latas?)\s+)?(?:de\s+)?(carne\s+asada|chicharron|machaca|frijoles?|carne|bebidas?|refrescos?|aguas?|sodas?)(?:\b)/g;
- let found=0,unmatched=normalized;
- // Surtido = un taco de cada guiso disponible en el día; el sábado asada reemplaza machaca.
- const assortedPattern=/(\b(?:\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|veinte)\s+(?:platos?|ordenes?|tacos?)?\s*(?:de\s+)?surtidos?\b|\bun\s+surtido\b)/g;
- for(const m of normalized.matchAll(assortedPattern)){
-  const count=spokenCount(m[0].split(/\s+/)[0]);if(!Number.isSafeInteger(count)||count<1||count>10000)continue;
-  for(const stew of orderStewNames())orderQty[stew]=(orderQty[stew]||0)+count;
-  found+=count*orderStewNames().length;unmatched=unmatched.replace(m[0],' ');
+ const raw=String(transcript||'').trim();
+ const plate=parsePlateSpeech(raw);
+ if(plate){
+  if(plate.error)return {found:0,notes:raw,warning:plate.error};
+  for(const items of plate.plates)addPlate(items);
+  renderOrder();
+  return {found:plate.plates.reduce((n,p)=>n+Object.values(p).reduce((a,b)=>a+b,0),0),notes:''};
  }
- // Los productos personalizados se reconocen por su nombre actual en Ajustes.
- // Primero se procesan los nombres más largos para evitar coincidencias parciales.
- const quantityWord='(?:\\d+|un|uno|una|unos|unas|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte|veinti(?:uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve)|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien)(?:\\s+y\\s+(?:uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve))?';
- const escapeRegex=value=>value.replace(/[^a-z0-9 ]/g,'');
- const aliases=name=>{
-  const n=spokenNormalize(name);if(!n)return [];
+ const normalized=spokenNormalize(raw);
+ const quantity='(?:\\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)';
+ let unmatched=normalized,found=0;
+ const assort=new RegExp('\\b('+quantity+')\\s+(?:platos?\\s+|ordenes?\\s+)?(?:de\\s+)?surtidos?\\b','g');
+ for(const m of [...unmatched.matchAll(assort)]){
+  const n=spokenCount(m[1]);if(!n||n>50)continue;
+  for(let i=0;i<n;i++)addPlate(Object.fromEntries(orderStewNames().map(k=>[k,1])));
+  found+=n*orderStewNames().length;unmatched=unmatched.replace(m[0],' ');
+ }
+ const aliases=products.flatMap(p=>{
+  const n=spokenNormalize(p.name||'');if(!n)return [];
   const forms=new Set([n]);
-  const words=n.split(' '),last=words[words.length-1];
-  if(last.endsWith('s'))forms.add([...words.slice(0,-1),last.replace(/es$|s$/,'')].join(' '));
-  else forms.add([...words.slice(0,-1),last+(last.endsWith('a')||last.endsWith('o')?'s':'es')].join(' '));
-  if(words.length>1){
-   const plural=w=>w.endsWith('s')?w:w+(w.endsWith('a')||w.endsWith('o')||w.endsWith('e')?'s':'es');
-   forms.add(words.map(plural).join(' '));
-   forms.add([plural(words[0]),...words.slice(1)].join(' '));
-  }
-  return [...forms].filter(x=>x.length>1);
- };
- const catalog=products.filter(p=>p&&p.name&&Number.isFinite(Number(p.price)))
-  .flatMap(p=>aliases(p.name).map(alias=>({alias,p})))
-  .sort((a,b)=>b.alias.length-a.alias.length);
- for(const {alias,p} of catalog){
-  // El producto base Tacos y las Bebidas ya tienen reglas especiales por guiso.
+  if(n.endsWith('s'))forms.add(n.replace(/es$|s$/,''));else forms.add(n+'s');
+  if(n.includes(' ')){const w=n.split(' ');forms.add([w[0]+'s',...w.slice(1)].join(' '))}
+  return [...forms].map(alias=>({alias,p}));
+ }).sort((a,b)=>b.alias.length-a.alias.length);
+ const escRegex=s=>s.replace(/[.*+?^$()|[\]{}\\]/g,'\\$&');
+ for(const {alias,p} of aliases){
   if(/^(tacos?|bebidas?|refrescos?)$/.test(alias))continue;
-  const expression=new RegExp('\\b('+quantityWord+')\\s+(?:(?:de|del|las|los)\\s+)?'+escapeRegex(alias)+'\\b','g');
-  for(const m of [...unmatched.matchAll(expression)]){
-   const count=spokenCount(m[1]);if(!Number.isSafeInteger(count)||count<1||count>10000)continue;
-   const key='producto:'+p.id;orderQty[key]=(orderQty[key]||0)+count;
-   found+=count;unmatched=unmatched.replace(m[0],' ');
+  const re=new RegExp('\\b('+quantity+')\\s+(?:(?:de|del|las|los)\\s+)?'+escRegex(alias)+'\\b','g');
+  for(const m of [...unmatched.matchAll(re)]){
+   const n=spokenCount(m[1]);if(!n||n>10000)continue;
+   orderQty['producto:'+p.id]=(orderQty['producto:'+p.id]||0)+n;found+=n;unmatched=unmatched.replace(m[0],' ');
   }
  }
- // La machaca y la asada son el mismo cuarto guiso según el día.
- for(const m of normalized.matchAll(pattern)){
-  const count=spokenCount(m[1]);if(!Number.isSafeInteger(count)||count<1||count>10000)continue;
-  const kind=m[2];let key=kind.startsWith('frijol')?'Frijol':kind==='chicharron'?'Chicharrón':kind==='carne asada'?'Carne asada':kind==='machaca'?'Machaca':kind==='carne'?'Carne':'bebida';
-  if(key==='Machaca'&&orderStewNames().includes('Carne asada'))key='Carne asada';if(key==='Carne asada'&&orderStewNames().includes('Machaca'))key='Machaca';if(key!=='bebida'&&!orderStewNames().includes(key))continue;
-  orderQty[key]=(orderQty[key]||0)+count;found+=count;
-  unmatched=unmatched.replace(m[0],' ');
+ const re=new RegExp('\\b('+quantity+')\\s+(?:(?:tacos?|taquitos?|vasos?|botellas?|latas?)\\s+)?(?:de\\s+)?(carne asada|chicharron|machaca|frijoles?|carne|bebidas?|refrescos?|aguas?|sodas?)\\b','g');
+ for(const m of [...unmatched.matchAll(re)]){
+  const n=spokenCount(m[1]);if(!n||n>10000)continue;
+  const k=m[2],key=/frijol/.test(k)?'Frijol':k==='chicharron'?'Chicharrón':/machaca|asada/.test(k)?orderStewNames()[3]:k==='carne'?'Carne':'bebida';
+  orderQty[key]=(orderQty[key]||0)+n;found+=n;unmatched=unmatched.replace(m[0],' ');
  }
  if(found)renderOrder();
- // Conserva las indicaciones especiales, pero no repite las cantidades ya registradas.
- const notes=unmatched.replace(/\b(?:y|de|tacos?|taquitos?|orden(?:es)?)\b/g,' ').replace(/\s+/g,' ').trim();
- return {found,notes:found?notes:raw};
+ return {found,notes:found?unmatched.replace(/\s+/g,' ').trim():raw};
 }
 let orderQty={};const orderStewNames=()=>new Date().getDay()===6?['Carne','Frijol','Chicharrón','Carne asada']:['Carne','Frijol','Chicharrón','Machaca'];
 const orderTacoPrice=()=>Number(products.find(p=>/taco/i.test(p.name))?.price??19);
 const orderDrinkPrice=()=>Number(products.find(p=>/bebida|refresco/i.test(p.name))?.price??20);
-function renderOrder(){const names=orderStewNames();for(const name of Object.keys(orderQty)){if(name!=='bebida'&&!name.startsWith('producto:')&&!names.includes(name))delete orderQty[name]}$('orderStews').innerHTML=names.map(n=>'<div class="card" style="margin:3px;padding:9px"><b>'+esc(n)+'</b><div class="qty"><button type="button" data-order-qty="'+esc(n)+'" data-order-delta="-1">−</button><strong>'+(orderQty[n]||0)+'</strong><button type="button" data-order-qty="'+esc(n)+'" data-order-delta="1">+</button></div></div>').join('');const custom=products.filter(p=>(orderQty['producto:'+p.id]||0)>0);
+function renderOrder(){const names=orderStewNames();for(const name of Object.keys(orderQty)){if(name!=='bebida'&&!name.startsWith('producto:')&&!names.includes(name))delete orderQty[name]}$('orderStews').innerHTML=names.map(n=>'<div class="card" style="margin:3px;padding:9px"><b>'+esc(n)+'</b><div class="qty"><button type="button" data-order-qty="'+esc(n)+'" data-order-delta="-1">−</button><strong>'+(orderQty[n]||0)+'</strong><button type="button" data-order-qty="'+esc(n)+'" data-order-delta="1">+</button></div></div>').join('');let plateArea=$('orderPlateList');if(!plateArea){plateArea=document.createElement('div');plateArea.id='orderPlateList';$('orderStews').insertAdjacentElement('beforebegin',plateArea)}
+ plateArea.innerHTML=orderPlates.length?'<h3>🍽️ Platos del pedido ('+orderPlates.length+')</h3>'+orderPlates.map((plate,i)=>'<div class="card" style="margin:6px 0;padding:10px"><b>🍽️ Plato '+(i+1)+'</b> <button type="button" data-plate-remove="'+i+'" style="float:right">✕ Quitar</button><div>'+Object.entries(plate.items).filter(([k,v])=>v>0).map(([k,v])=>'🌮 '+esc(k)+' × '+v).join(' · ')+'</div><div>'+Object.values(plate.items).reduce((a,b)=>a+b,0)+' tacos</div></div>').join(''):'';
+ const custom=products.filter(p=>(orderQty['producto:'+p.id]||0)>0);
  let extras=$('orderExtraProducts');if(!extras){extras=document.createElement('div');extras.id='orderExtraProducts';$('orderStews').insertAdjacentElement('afterend',extras)}
  extras.innerHTML=custom.length?'<h3>Otros productos</h3>'+custom.map(p=>'<div class="card" style="margin:5px 0;padding:10px"><b>'+esc(p.icon||'📦')+' '+esc(p.name)+'</b><div class="qty"><button type="button" data-order-qty="producto:'+esc(String(p.id))+'" data-order-delta="-1">−</button><strong>'+(orderQty['producto:'+p.id]||0)+'</strong><button type="button" data-order-qty="producto:'+esc(String(p.id))+'" data-order-delta="1">+</button></div></div>').join(''):'';
  $('orderDrinkQty').textContent=orderQty.bebida||0;$('orderTotal').textContent=fmt(names.reduce((a,n)=>a+(orderQty[n]||0),0)*orderTacoPrice()+(orderQty.bebida||0)*orderDrinkPrice()+products.reduce((sum,p)=>sum+(orderQty['producto:'+p.id]||0)*Number(p.price),0))}
 document.addEventListener('click',e=>{let b=e.target.closest('[data-order-qty]');if(!b)return;const name=b.dataset.orderQty;orderQty[name]=Math.max(0,(orderQty[name]||0)+Number(b.dataset.orderDelta));renderOrder()});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-plate-remove]');if(!b)return;const i=Number(b.dataset.plateRemove),plate=orderPlates[i];if(!plate)return;for(const [k,n] of Object.entries(plate.items))orderQty[k]=Math.max(0,(orderQty[k]||0)-n);orderPlates.splice(i,1);renderOrder()});
 $('orderClear').onclick=()=>{orderQty={};for(const id of ['orderName','orderPhone','orderAddress','orderNotes'])$(id).value='';renderOrder()};
-$('orderPrint').onclick=()=>{if(!window.AndroidPrinter)return alert('Abre la APK Android para imprimir.');const names=orderStewNames(),items=names.filter(n=>orderQty[n]>0).map(n=>({id:'pedido-'+n,name:'Taco '+n,qty:orderQty[n],price:orderTacoPrice()}));if(orderQty.bebida>0)items.push({id:'pedido-bebida',name:'Bebida',qty:orderQty.bebida,price:orderDrinkPrice()});for(const p of products){const qty=orderQty['producto:'+p.id]||0;if(qty>0)items.push({id:'pedido-producto-'+p.id,name:p.name,qty,price:Number(p.price)})}if(!items.length)return alert('Agrega al menos un producto');const customer={name:$('orderName').value.trim(),phone:$('orderPhone').value.trim(),address:$('orderAddress').value.trim(),notes:$('orderNotes').value.trim()};if(!customer.name||!customer.address)return alert('Escribe nombre y dirección del cliente');const amount=items.reduce((a,x)=>a+x.qty*x.price,0),s={folio:next,date:new Date().toISOString(),items,subtotal:amount,tax:0,retention:0,invoice:false,order:true,customer,amount};try{save('ec_sales',[...sales,s]);save('ec_next',next+1)}catch(e){return alert('No se pudo guardar el pedido')};sales.push(s);next++;lastTicket=s;printCurrentTicket();$('orderClear').click();playSound('success');renderSales();renderCut()};
+$('orderPrint').onclick=()=>{if(!window.AndroidPrinter)return alert('Abre la APK Android para imprimir.');const names=orderStewNames(),items=names.filter(n=>orderQty[n]>0).map(n=>({id:'pedido-'+n,name:'Taco '+n,qty:orderQty[n],price:orderTacoPrice()}));if(orderQty.bebida>0)items.push({id:'pedido-bebida',name:'Bebida',qty:orderQty.bebida,price:orderDrinkPrice()});for(const p of products){const qty=orderQty['producto:'+p.id]||0;if(qty>0)items.push({id:'pedido-producto-'+p.id,name:p.name,qty,price:Number(p.price)})}if(!items.length)return alert('Agrega al menos un producto');const plateDetails=orderPlates.map((p,i)=>'Plato '+(i+1)+': '+Object.entries(p.items).map(([k,v])=>v+' '+k).join(', ')).join(' | ');const customer={name:$('orderName').value.trim(),phone:$('orderPhone').value.trim(),address:$('orderAddress').value.trim(),notes:[plateDetails,$('orderNotes').value.trim()].filter(Boolean).join(' | ')};if(!customer.name||!customer.address)return alert('Escribe nombre y dirección del cliente');const amount=items.reduce((a,x)=>a+x.qty*x.price,0),s={folio:next,date:new Date().toISOString(),items,subtotal:amount,tax:0,retention:0,invoice:false,order:true,customer,amount};try{save('ec_sales',[...sales,s]);save('ec_next',next+1)}catch(e){return alert('No se pudo guardar el pedido')};sales.push(s);next++;lastTicket=s;printCurrentTicket();$('orderClear').click();playSound('success');renderSales();renderCut()};
 renderOrder();
 function renderSales(){let selected=historySearchActive?$('historyDate').value:'';let today=new Date();let dateKey=selected||[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');$('historyDateTitle').textContent=selected?'Cobros del '+selected.split('-').reverse().join('/')+' desde '+($('historyTime').value||'00:00'):'Ventas de hoy';let filtered=sales.filter(s=>{let d=new Date(s.date);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')===dateKey&&(!selected||d.getHours()*60+d.getMinutes()>=Number(($('historyTime').value||'00:00').split(':')[0])*60+Number(($('historyTime').value||'00:00').split(':')[1]))});for(const [id,items] of [['normalSales',filtered.filter(s=>!s.invoice&&!s.order)],['invoiceSales',filtered.filter(s=>s.invoice&&!s.order)],['orderSales',filtered.filter(s=>s.order)]]){let totalId=id==='normalSales'?'normalHistoryTotal':id==='orderSales'?'orderHistoryTotal':'invoiceHistoryTotal';$(totalId).textContent=items.length+' ventas · '+fmt(items.reduce((n,s)=>n+s.amount,0));$(id).innerHTML='<p><b>'+items.length+' ventas · '+fmt(items.reduce((n,s)=>n+s.amount,0))+'</b></p>'+items.slice().reverse().map(s=>`<div class="line"><span>Folio ${String(s.folio).padStart(6,'0')}<br><small>${new Date(s.date).toLocaleTimeString('es-MX')}</small></span><span><b>${fmt(s.amount)}</b><br><button data-reprint="${s.folio}">Ver ticket</button> <button data-delete-sale="${s.folio}">Eliminar</button></span></div>`).join('');}document.querySelectorAll('[data-reprint]').forEach(b=>b.onclick=()=>showTicket(sales.find(s=>s.folio==b.dataset.reprint)));document.querySelectorAll('[data-delete-sale]').forEach(b=>b.onclick=()=>{let folio=Number(b.dataset.deleteSale),sale=sales.find(s=>s.folio===folio);if(!sale)return;if(!confirm('¿Enviar a papelera el cobro del folio '+folio+' por '+fmt(sale.amount)+'? Se descontará automáticamente del corte.'))return;let updated=sales.filter(s=>s.folio!==folio),trash=[...deletedSales,sale];save('ec_sales',updated);save('ec_deleted_sales',trash);sales=updated;deletedSales=trash;if(lastTicket?.folio===folio){lastTicket=null;$('ticketPanel').classList.add('hidden')}renderSales();renderCut()});renderTrash()}
 let historySearchActive=false;$('toggleHistorySearch').onclick=()=>{let p=$('historySearchPanel');p.classList.toggle('hidden');$('toggleHistorySearch').setAttribute('aria-expanded',String(!p.classList.contains('hidden')));if(!$('historyDate').value){let d=new Date();$('historyDate').value=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}};$('historySearch').onclick=()=>{if(!$('historyDate').value)return alert('Selecciona el día del cobro');historySearchActive=true;$('normalHistory').open=true;$('invoiceHistory').open=true;renderSales()};$('historyToday').onclick=()=>{historySearchActive=false;$('historyDate').value='';$('historySearchPanel').classList.add('hidden');$('toggleHistorySearch').setAttribute('aria-expanded','false');$('normalHistory').open=false;$('invoiceHistory').open=false;renderSales()};
