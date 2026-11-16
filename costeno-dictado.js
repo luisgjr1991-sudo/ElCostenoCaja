@@ -92,7 +92,26 @@ function parse(raw){
 const previous=applySpokenOrder;
 applySpokenOrder=function(transcript){
  const result=parse(transcript);
- if(!result)return previous(transcript);
+ if(!result){
+  // Evitar que el intérprete anterior invente Carne cuando se nombraron otros guisos.
+  const heard=clean(transcript);
+  const explicitlyOther=/\b(?:frijol(?:es)?|chicharron(?:es)?|machaca|asada)\b/.test(heard);
+  if(explicitlyOther){
+   const beforePlates=orderPlates.map(p=>({id:p.id,items:{...p.items}}));
+   const beforeQty={...orderQty};
+   const fallback=previous(transcript);
+   const added=orderPlates.slice(beforePlates.length);
+   const onlyCarne=added.length>0&&added.every(p=>Object.keys(p.items).every(k=>k==="Carne"));
+   if(onlyCarne){
+    orderPlates=beforePlates;
+    orderQty=beforeQty;
+    renderOrder();
+    return {found:0,notes:transcript,warning:"El dictado menciona otros guisos, pero no pude asignarlos a cada plato. No registré tacos de Carne por defecto. Revisa o dicta nuevamente."};
+   }
+   return fallback;
+  }
+  return previous(transcript);
+ }
  if(result.error)return {found:0,notes:transcript,warning:result.error};
  if(result.mode==="replace"){
   for(const old of orderPlates)for(const [k,q] of Object.entries(old.items))orderQty[k]=Math.max(0,(orderQty[k]||0)-q);
