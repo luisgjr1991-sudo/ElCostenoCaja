@@ -553,6 +553,29 @@ function interpretNaturalPlateCommand(raw){
 function applySpokenOrder(transcript){
  const raw=String(transcript||'').trim();
  const phrase=spokenNormalize(raw);
+ // Pedidos directos con modismos: "échame tres platitos con dos de carne".
+ const plain=phrase.replace(/\b(?:echame|avientame|aventame|armame|preparame|dame|ponme|ocupo|quiero|necesito|me das|me pones)\b/g,' ').replace(/\bplatitos?\b/g,'platos').replace(/\btaquitos?\b/g,'tacos').replace(/\bcarnita\b/g,'carne').replace(/\bfrijolitos?\b/g,'frijol').replace(/\s+/g,' ').trim();
+ const countWord='(\\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)';
+ const direct=plain.match(new RegExp('^'+countWord+'\\s+platos?\\s+(?:con|de|que\\s+lleven)\\s+'+countWord+'\\s+(?:tacos?\\s+)?(?:de\\s+)?(carne\\s+asada|carne|frijoles?|chicharron|machaca|asada)\\s*(?:cada\\s+uno)?$'));
+ if(direct){
+  const n=spokenCount(direct[1]),per=spokenCount(direct[2]);
+  if(n<1||n>50||per<1||per>100)return {found:0,notes:raw,warning:'Revisa las cantidades; máximo 50 platos.'};
+  const flavor=/frijol/.test(direct[3])?'Frijol':/chicharron/.test(direct[3])?'Chicharrón':/machaca|asada/.test(direct[3])?orderStewNames()[3]:'Carne';
+  for(const plate of orderPlates)for(const [k,q] of Object.entries(plate.items))orderQty[k]=Math.max(0,(orderQty[k]||0)-q);
+  orderPlates=[];
+  for(let i=0;i<n;i++)addPlate({[flavor]:per});
+  renderOrder();
+  return {found:n*per,notes:'',message:'Detectados '+n+' platos con '+per+' tacos de '+flavor+' cada uno.'};
+ }
+ const repeat=plain.match(new RegExp('^(?:otros?\\s+)?(?:'+countWord+'\\s+)?(?:platos?\\s+)?(?:mas\\s+)?(?:igual(?:es|itos?)?|lo\\s+mismo|como\\s+el\\s+ultimo)$'));
+ if(repeat&&orderPlates.length){
+  const n=repeat[1]?spokenCount(repeat[1]):1;
+  if(n<1||orderPlates.length+n>50)return {found:0,notes:raw,warning:'Máximo 50 platos.'};
+  const items={...orderPlates[orderPlates.length-1].items};
+  for(let i=0;i<n;i++)addPlate(items);
+  renderOrder();
+  return {found:n*Object.values(items).reduce((a,b)=>a+b,0),notes:'',message:'Agregados '+n+' platos iguales al último.'};
+ }
  const simple=phrase.match(/\b(\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)\s+platos?\s+surtidos?\b/);
  if(simple&&!/\b(?:con|menos|sin|excepto)\b/.test(phrase.slice(simple.index+simple[0].length))){
   const count=spokenCount(simple[1]);
