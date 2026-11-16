@@ -234,23 +234,46 @@ $('printTransferQr').onclick=()=>{
 
 // Pedidos: usa el mismo historial, folios, precios y motor de impresion de la caja.
 
+// El dictado de la APK usa el reconocimiento nativo de Android.
 let orderSpeech=null;
 function orderVoiceParse(raw){
- const text=String(raw||'').trim().replace(/[.,;]+(?=\\s*(?:nombre|teléfono|telefono|dirección|direccion|domicilio|referencia)\\b)/gi,' ');
- const pattern=/\\b(nombre(?:\\s+del\\s+cliente)?|tel[eé]fono|n[uú]mero\\s+de\\s+tel[eé]fono|direcci[oó]n|domicilio|referencia)\\s*(?:es|:)?\\s*/gi;
- const matches=[...text.matchAll(pattern)];if(!matches.length)return false;
- let found=false;for(let i=0;i<matches.length;i++){const key=matches[i][1].toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');let value=text.slice(matches[i].index+matches[i][0].length,i+1<matches.length?matches[i+1].index:text.length).trim().replace(/^[,.:\\s]+|[,.:\\s]+$/g,'');if(!value)continue;let field=key.startsWith('nombre')?'orderName':key.includes('telefono')?'orderPhone':key==='referencia'?'orderAddress':'orderAddress';if(field==='orderPhone')value=value.replace(/[^0-9+ ]/g,'');if(!value)continue;if(key==='referencia'&&$('orderAddress').value)value=$('orderAddress').value+'; referencia: '+value;$(field).value=value;found=true}return found
+ const spoken=String(raw||'').trim();
+ const pattern=/\b(nombre(?:\s+del\s+cliente)?|tel[eé]fono|n[uú]mero\s+de\s+tel[eé]fono|direcci[oó]n|domicilio|referencia)\s*(?:es|:)?\s*/gi;
+ const matches=[...spoken.matchAll(pattern)];if(!matches.length)return false;
+ let found=false;
+ for(let i=0;i<matches.length;i++){
+  const key=matches[i][1].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  let value=spoken.slice(matches[i].index+matches[i][0].length,i+1<matches.length?matches[i+1].index:spoken.length).trim().replace(/^[,.;:\s]+|[,.;:\s]+$/g,'');
+  if(!value)continue;
+  const field=key.startsWith('nombre')?'orderName':key.includes('telefono')?'orderPhone':'orderAddress';
+  if(field==='orderPhone')value=value.replace(/[^0-9+ ]/g,'');
+  if(!value)continue;
+  if(key==='referencia'&&$('orderAddress').value)value=$('orderAddress').value+'; referencia: '+value;
+  $(field).value=value;found=true;
+ }
+ return found;
 }
+function orderVoiceReset(){orderSpeech=null;$('orderVoice').textContent='🎤 Dictar nombre y dirección';$('orderVoice').disabled=false}
+window.orderNativeSpeechResult=(status,value)=>{
+ orderVoiceReset();
+ if(status==='ok'){$('orderVoiceStatus').textContent=orderVoiceParse(value)?'Datos capturados. Revísalos antes de imprimir.':'Escuché: '+value+'. Di nombre, teléfono y dirección para separarlos.';}
+ else $('orderVoiceStatus').textContent=value||'No se pudo completar el dictado.';
+};
 $('orderVoice').onclick=()=>{
+ if(orderSpeech)return;
+ if(window.AndroidSpeech&&typeof window.AndroidSpeech.start==='function'){
+  orderSpeech='native';$('orderVoice').disabled=true;$('orderVoice').textContent='🎤 Abriendo micrófono...';$('orderVoiceStatus').textContent='Habla cuando Android muestre el micrófono.';
+  try{window.AndroidSpeech.start()}catch(e){window.orderNativeSpeechResult('error','No se pudo iniciar el dictado de Android.');}
+  return;
+ }
  const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;
- if(!Speech){$('orderVoiceStatus').textContent='El reconocimiento de voz no está disponible en esta versión de Android. Puedes escribir los datos manualmente.';return}
- if(orderSpeech){try{orderSpeech.stop()}catch(e){}return}
+ if(!Speech){$('orderVoiceStatus').textContent='El dictado no está disponible aquí. Abre la APK actualizada.';return}
  const r=new Speech();orderSpeech=r;r.lang='es-MX';r.continuous=false;r.interimResults=false;r.maxAlternatives=1;
- $('orderVoiceStatus').textContent='🎤 Escuchando... Di nombre, teléfono y dirección.';
- r.onresult=e=>{const said=e.results[0][0].transcript;const ok=orderVoiceParse(said);$('orderVoiceStatus').textContent=ok?'Datos capturados. Revísalos antes de imprimir.':'No identifiqué los campos. Di: Nombre..., teléfono..., dirección...';};
- r.onerror=e=>{$('orderVoiceStatus').textContent='No se pudo usar el micrófono ('+e.error+'). Revisa permisos y conexión, o escribe los datos.';};
- r.onend=()=>{orderSpeech=null;$('orderVoice').textContent='🎤 Dictar nombre y dirección'};
- try{$('orderVoice').textContent='⏹️ Detener dictado';r.start()}catch(e){orderSpeech=null;$('orderVoice').textContent='🎤 Dictar nombre y dirección';$('orderVoiceStatus').textContent='No se pudo iniciar el reconocimiento de voz.'}
+ $('orderVoiceStatus').textContent='🎤 Escuchando...';
+ r.onresult=e=>window.orderNativeSpeechResult('ok',e.results[0][0].transcript);
+ r.onerror=e=>window.orderNativeSpeechResult('error','No se pudo usar el micrófono ('+e.error+').');
+ r.onend=()=>{if(orderSpeech===r)orderVoiceReset()};
+ try{$('orderVoice').textContent='⏹️ Detener dictado';r.start()}catch(e){window.orderNativeSpeechResult('error','No se pudo iniciar el dictado.')}
 };
 let orderQty={};const orderStewNames=()=>new Date().getDay()===6?['Carne','Frijol','Chicharrón','Carne asada']:['Carne','Frijol','Chicharrón','Machaca'];
 const orderTacoPrice=()=>Number(products.find(p=>/taco/i.test(p.name))?.price??19);
