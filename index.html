@@ -353,7 +353,7 @@ function parsePlateSpeech(raw){
  const header=normalized.match(platePattern);
  if(!header)return null;
  let rest=normalized.slice(header.index+header[0].length).trim();
- let segments=rest.split(/\s+(?=(?:(?:otros?|otras?)\s+)?(?:uno|una|un|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+(?:platos?\s+)?(?:con|de|surtidos?\b)|(?:otro|otra)\s+con\b))/).filter(Boolean);
+ let segments=rest.split(/\s+(?=(?:(?:otros?|otras?)\s+)?(?:uno|una|un|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+(?:platos?\s+)?(?:con|de|surtidos?\b)|(?:otro|otra)\s+con\b)/).filter(Boolean);
  if(segments.length===1)segments=rest.split(/\s+(?=otro(?:s)?\s+(?:con|de|surtidos?\b))/).filter(Boolean);
  const plates=[];
  for(let segment of segments){
