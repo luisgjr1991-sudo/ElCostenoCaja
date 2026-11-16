@@ -187,8 +187,8 @@ function editCommand(raw){
  return {mode:"adjust",index:ix,key:k,delta:remove?-qty:qty};
 }
 function parse(raw){
- const edit=editCommand(raw);if(edit)return edit;
  const distinct=distinctPlates(raw);if(distinct)return distinct;
+ const edit=editCommand(raw);if(edit)return edit;
  const ordered=sequential(raw);if(ordered)return ordered;
  const t=clean(raw);
  // Completo: N platos con X de carne y Y de frijol, cada uno.
