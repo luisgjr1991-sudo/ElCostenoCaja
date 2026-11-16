@@ -335,14 +335,14 @@ function applySpokenOrder(transcript){
  // Surtido = un taco de cada guiso disponible en el día; el sábado asada reemplaza machaca.
  const assortedPattern=/(\b(?:\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|veinte)\s+(?:platos?|ordenes?|tacos?)?\s*(?:de\s+)?surtidos?\b|\bun\s+surtido\b)/g;
  for(const m of normalized.matchAll(assortedPattern)){
-  const count=spokenCount(m[0].split(/\\s+/)[0]);if(!Number.isSafeInteger(count)||count<1||count>10000)continue;
+  const count=spokenCount(m[0].split(/\s+/)[0]);if(!Number.isSafeInteger(count)||count<1||count>10000)continue;
   for(const stew of orderStewNames())orderQty[stew]=(orderQty[stew]||0)+count;
   found+=count*orderStewNames().length;unmatched=unmatched.replace(m[0],' ');
  }
  // Los productos personalizados se reconocen por su nombre actual en Ajustes.
  // Primero se procesan los nombres más largos para evitar coincidencias parciales.
  const quantityWord='(?:\\d+|un|uno|una|unos|unas|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte|veinti(?:uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve)|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien)(?:\\s+y\\s+(?:uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve))?';
- const escapeRegex=value=>value.replace(/[.*+?^\u0024{}()|[\\]\\]/g,'\\ // La machaca y la asada son el mismo cuarto guiso según el día.');
+ const escapeRegex=value=>value.replace(/[^a-z0-9 ]/g,'');
  const aliases=name=>{
   const n=spokenNormalize(name);if(!n)return [];
   const forms=new Set([n]);
@@ -357,7 +357,7 @@ function applySpokenOrder(transcript){
  for(const {alias,p} of catalog){
   // El producto base Tacos y las Bebidas ya tienen reglas especiales por guiso.
   if(/^(tacos?|bebidas?|refrescos?)$/.test(alias))continue;
-  const expression=new RegExp('\\\\b('+quantityWord+')\\\\s+(?:(?:de|del|las|los)\\\\s+)?'+escapeRegex(alias)+'\\\\b','g');
+  const expression=new RegExp('\\b('+quantityWord+')\\s+(?:(?:de|del|las|los)\\s+)?'+escapeRegex(alias)+'\\b','g');
   for(const m of [...unmatched.matchAll(expression)]){
    const count=spokenCount(m[1]);if(!Number.isSafeInteger(count)||count<1||count>10000)continue;
    const key='producto:'+p.id;orderQty[key]=(orderQty[key]||0)+count;
