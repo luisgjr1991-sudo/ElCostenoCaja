@@ -348,6 +348,30 @@ document.addEventListener('click',e=>{
 
 const spokenNumbers={un:1,uno:1,una:1,unos:1,unas:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,once:11,doce:12,trece:13,catorce:14,quince:15,dieciseis:16,diecisiete:17,dieciocho:18,diecinueve:19,veinte:20,veintiuno:21,veintidos:22,veintitres:23,veinticuatro:24,veinticinco:25,veintiseis:26,veintisiete:27,veintiocho:28,veintinueve:29,treinta:30,cuarenta:40,cincuenta:50,sesenta:60,setenta:70,ochenta:80,noventa:90,cien:100};
 const spokenNormalize=t=>String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+// Vocabulario regional de pedidos. Se normaliza ANTES de interpretar cantidades y platos.
+function costenoNormalizeSpeech(raw){
+ let t=spokenNormalize(raw);
+ const replacements=[
+  [/\b(?:echame|echale|avientame|aventame|preparame|sirveme|armame|dejame|dame|pasame|ponme|mandame|ocupo|necesito|quiero|me das|me pones|me preparas|me armas|me echas|me avientas|me mandas|me regalas)\b/g,' '],
+  [/\b(?:platitos|platillos|platotes|platito|platillo|platoz|plantos|plantos)\b/g,'platos'],
+  [/\b(?:taquitos|taquito|taquillos|taquillo|taquitos)\b/g,'tacos'],
+  [/\b(?:carnita|carnitas)\b/g,'carne'],
+  [/\b(?:frijolitos|frijolito|frijolitos|frijolitos)\b/g,'frijol'],
+  [/\b(?:chicharroncito|chicharroncitos|chicharon|chicharones)\b/g,'chicharron'],
+  [/\b(?:machacita|machacadito)\b/g,'machaca'],
+  [/\b(?:igualitas|igualitos|igualitas|igualito)\b/g,'igual'],
+  [/\b(?:cada quien|cada cual|por plato|por cada plato|en cada plato|cada uno de ellos)\b/g,'cada uno'],
+  [/\b(?:un par de|un par|par de)\b/g,'dos'],
+  [/\b(?:media docena de|media docena)\b/g,'seis'],
+  [/\b(?:una docena de|una docena|docena de)\b/g,'doce'],
+  [/\b(?:los que faltan|los que quedan|los restantes|lo demas)\b/g,'los demas'],
+  [/\b(?:y tambien|ademas de|junto con)\b/g,'y'],
+  [/\b(?:de puro|puros|puras|solamente de|nada mas de)\b/g,'de'],
+  [/\b(?:por favor|porfa|porfis|porfi|este|ahi|a ver|fijate|mira)\b/g,' ']
+ ];
+ for(const [rx,replacement] of replacements)t=t.replace(rx,replacement);
+ return t.replace(/\s+/g,' ').trim();
+}
 function spokenCount(words){const a=words.trim().split(/\s+/);if(!a[0])return null;let first=spokenNumbers[a[0]];if(first==null&&/^\d+$/.test(a[0]))first=Number(a[0]);if(first==null)return null;if(a.length===1)return first;if(a.length===3&&a[1]==='y'&&spokenNumbers[a[2]]!=null&&first>=30&&first<=90)return first+spokenNumbers[a[2]];return null}
 // El micrófono del teclado Android escribe directamente en el textarea: también se interpreta ese texto.
 let orderLastInterpreted='';
@@ -397,7 +421,7 @@ function parseListedPlates(raw){
  return {plates,notes:''};
 }
 function parsePlateSpeech(raw){
- const normalized=spokenNormalize(raw);
+ const normalized=costenoNormalizeSpeech(raw);
  const numberWord='(?:\\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)';
  const num=w=>spokenCount(w)||0,names=orderStewNames();
  const header=normalized.match(new RegExp('\\b('+numberWord+')\\s+platos?\\b'));
@@ -495,7 +519,7 @@ function editPlatesByVoice(raw){
  return {found:qty*targets.length,notes:'',message:'Modificación aplicada a '+targets.length+' plato(s).'};
 }
 function interpretNaturalPlateCommand(raw){
- const t=spokenNormalize(raw),names=orderStewNames();
+ const t=costenoNormalizeSpeech(raw),names=orderStewNames();
  const word='(?:\\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)';
  const flavor='(?:carne\\s+asada|chicharrones?|machacas?|frijoles?|carnes?)';
  const qty=w=>spokenCount(w)||0;
@@ -552,7 +576,7 @@ function interpretNaturalPlateCommand(raw){
 }
 function applySpokenOrder(transcript){
  const raw=String(transcript||'').trim();
- const phrase=spokenNormalize(raw);
+ const phrase=costenoNormalizeSpeech(raw);
  // Frase directa: "tres platos con dos de carne" significa 3 platos, 2 tacos de carne en cada uno.
  // Se interpreta antes de los comandos de edición para evitar confundirla con un cambio a platos anteriores.
  const number='(\\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)';
@@ -568,7 +592,7 @@ function applySpokenOrder(transcript){
   }
  }
  const natural=interpretNaturalPlateCommand(raw);if(natural)return natural;
- const normalizedAdd=spokenNormalize(raw);
+ const normalizedAdd=costenoNormalizeSpeech(raw);
  // Añadir platos nuevos no es una edición de guisos de platos existentes.
  const addAssorted=normalizedAdd.match(/\b(?:agrega(?:r|le|les)?|anade(?:r)?|pon(?:er)?|suma(?:r)?|incluye|mete)\s+(?:(?:otros?|otras?)\s+)?(\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+platos?\s+(?:mas\s+)?surtidos?\b/);
  if(addAssorted){
@@ -590,7 +614,7 @@ function applySpokenOrder(transcript){
   renderOrder();
   return {found:plate.plates.reduce((n,p)=>n+Object.values(p).reduce((a,b)=>a+b,0),0),notes:''};
  }
- const normalized=spokenNormalize(raw);
+ const normalized=costenoNormalizeSpeech(raw);
  // Si se mencionan platos pero no se puede construir el emplatado completo,
  // nunca convertir el dictado en tacos sueltos ni alterar los contadores.
  if(/\b(?:platos?|plantos?)\b/.test(normalized)&&/\b(?:uno|un|otro|otra|con|surtido|surtidos)\b/.test(normalized))return {found:0,notes:raw,warning:'No pude separar los platos. Corrige el texto y vuelve a interpretar; no se agregaron tacos.'};
@@ -936,6 +960,16 @@ header{padding-top:44px!important}
   for(let i=0;i<count;i++)addPlate({[flavor]:perPlate});
   renderOrder();
   return {found:count*perPlate,notes:'',message:'Detectados '+count+' platos con '+perPlate+' tacos de '+flavor+' en cada uno.'};
+ }
+ // Contexto: "otro igual", "dos mas iguales" repiten el ultimo plato sin adivinar sabores.
+ const same=phrase.match(/\b(?:(\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+)?(?:platos?\s+)?(?:mas\s+)?(?:igual(?:es)?|lo mismo|del mismo|como el ultimo)\b/);
+ if(same&&orderPlates.length){
+  const count=same[1]?spokenCount(same[1]):1;
+  if(count<1||count>50||orderPlates.length+count>50)return {found:0,notes:raw,warning:'No se agregaron platos: máximo 50.'};
+  const items={...orderPlates[orderPlates.length-1].items};
+  for(let j=0;j<count;j++)addPlate(items);
+  renderOrder();
+  return {found:count*Object.values(items).reduce((a,b)=>a+b,0),notes:'',message:'Agregados '+count+' platos iguales al último.'};
  }
  const simple=phrase.match(/\b(\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)\s+platos?\s+surtidos?\b/);
  if(simple&&!/\b(?:con|menos|sin|excepto)\b/.test(phrase.slice(simple.index+simple[0].length))){
