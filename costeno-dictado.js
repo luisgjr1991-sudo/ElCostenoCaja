@@ -65,7 +65,42 @@ function sequential(raw){
  }
  return {mode:"replace",plates};
 }
+function editCommand(raw){
+ const t=clean(raw);
+ const flavorItem=new RegExp("^"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"$");
+ // Add one or more new plates, without replacing the current order.
+ const add=t.match(new RegExp("^(?:agrega|agregame|anade|pon|ponme|mete|incluye|suma|echame)\\s+(?:otros?\\s+)?"+number+"\\s+platos?\\s*(?:mas\\s+)?(?:con|de)\\s+(.+)$"));
+ if(add){
+  const count=n(add[1]);if(!count||count>50||orderPlates.length+count>50)return {error:"Máximo 50 platos."};
+  const content=add[2].replace(/\s+cada uno$/,"").trim();
+  const items={};
+  for(const part of content.split(/\s+y\s+/)){
+   const m=part.trim().match(flavorItem);if(!m)return {error:"No entendí un guiso del plato nuevo."};
+   const qty=n(m[1]);if(qty<1||qty>100)return {error:"Cantidad de tacos no válida."};
+   const k=keyOf(m[2]);items[k]=(items[k]||0)+qty;
+  }
+  return {mode:"append",plates:Array.from({length:count},()=>({...items}))};
+ }
+ // Remove an entire plate by number, ordinal or "último".
+ const del=t.match(/^(?:quita|quitame|elimina|borra|retira|saca)\s+(?:el\s+)?(?:plato\s+)?(primero|segundo|tercero|cuarto|quinto|ultimo|\d+|uno|dos|tres|cuatro|cinco)$/);
+ if(del){
+  const ix={primero:0,segundo:1,tercero:2,cuarto:3,quinto:4,ultimo:orderPlates.length-1}[del[1]]??n(del[1])-1;
+  if(ix<0||ix>=orderPlates.length)return {error:"No existe ese plato."};
+  return {mode:"delete",index:ix};
+ }
+ // Add or remove tacos from a named plate, including ordinal names.
+ const m=t.match(new RegExp("^(agrega|agregale|anade|pon|ponle|suma|quita|quitale|retira|resta)\\s+(?:al\\s+|en\\s+el\\s+|del\\s+)?(?:plato\\s+)?(primero|segundo|tercero|cuarto|quinto|ultimo|\\d+|uno|dos|tres|cuatro|cinco)\\s+(?:plato\\s+)?(?:con\\s+)?(.+)$"));
+ if(!m)return null;
+ const ix={primero:0,segundo:1,tercero:2,cuarto:3,quinto:4,ultimo:orderPlates.length-1}[m[2]]??n(m[2])-1;
+ if(ix<0||ix>=orderPlates.length)return {error:"No existe ese plato."};
+ const item=m[3].match(flavorItem);if(!item)return {error:"No entendí cantidad y guiso."};
+ const qty=n(item[1]);if(!qty||qty>100)return {error:"Cantidad de tacos no válida."};
+ const k=keyOf(item[2]),remove=/^(quita|quitale|retira|resta)$/.test(m[1]);
+ if(remove&&(orderPlates[ix].items[k]||0)<qty)return {error:"El plato no tiene suficientes tacos de "+k+"."};
+ return {mode:"adjust",index:ix,key:k,delta:remove?-qty:qty};
+}
 function parse(raw){
+ const edit=editCommand(raw);if(edit)return edit;
  const ordered=sequential(raw);if(ordered)return ordered;
  const t=clean(raw);
  // Completo: N platos con X de carne y Y de frijol, cada uno.
@@ -118,6 +153,20 @@ applySpokenOrder=function(transcript){
   return previous(transcript);
  }
  if(result.error)return {found:0,notes:transcript,warning:result.error};
+ if(result.mode==="delete"){
+  const old=orderPlates.splice(result.index,1)[0];
+  for(const [k,q] of Object.entries(old.items))orderQty[k]=Math.max(0,(orderQty[k]||0)-q);
+  renderOrder();
+  return {found:1,notes:"",message:"Plato eliminado y total actualizado."};
+ }
+ if(result.mode==="adjust"){
+  const items=orderPlates[result.index].items;
+  items[result.key]=(items[result.key]||0)+result.delta;
+  if(!items[result.key])delete items[result.key];
+  orderQty[result.key]=Math.max(0,(orderQty[result.key]||0)+result.delta);
+  renderOrder();
+  return {found:Math.abs(result.delta),notes:"",message:"Plato "+(result.index+1)+" actualizado."};
+ }
  if(result.mode==="replace"){
   for(const old of orderPlates)for(const [k,q] of Object.entries(old.items))orderQty[k]=Math.max(0,(orderQty[k]||0)-q);
   orderPlates=[];
