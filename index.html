@@ -359,8 +359,15 @@ function parsePlateSpeech(raw){
  if(!header)return null;
  const expected=num(header[1]);if(expected<1||expected>50)return {error:'Indica entre 1 y 50 platos.',notes:raw};
  let rest=normalized.slice(header.index+header[0].length).trim();
+ // Dictado natural: "tres de chicharrón en uno, cuatro de carne en otro".
+ rest=rest.replace(/\b(?:puedes?\s+poner|pon|quiero|me\s+pones?)\s+/g,'');
+ rest=rest.replace(/\b(\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+(?:tacos?\s+)?de\s+(carne|frijol|chicharron|machaca|asada)\s+en\s+(?:un|uno|una|otro|otra)(?:\s+plato)?\b/g,'uno con $1 de $2');
+ // "sentidos" es un error frecuente del dictado para "surtidos" en este contexto.
+ const suspectedAssorted=/\b(?:los|las)\s+(?:otros?\s+)?(?:que\s+)?(?:restan|quedan|faltan|restantes|demas)\s+sentidos?\b/.test(rest);
+ if(suspectedAssorted)rest=rest.replace(/\bsentidos?\b/g,'surtidos');
  const leftover=/\b(?:(?:y\s+)?(?:(?:los|las)\s+)?(?:(?:otros?|otras?)\s+)?(?:demas|restantes|que\s+(?:queden|faltan|restan)|(?:el\s+)?resto|resto\s+de\s+(?:los|las))|(?:y\s+)?(?:el\s+)?resto)\s+(?:platos?\s+)?(?:van\s+|seran\s+|son\s+|con\s+|de\s+)?surtidos?\b/;
  const leftoverMatch=rest.match(leftover);
+ if(suspectedAssorted)return {error:'¿Quisiste decir «los que restan surtidos»? Corrige «sentidos» por «surtidos» para confirmar.',notes:raw};
  if(leftoverMatch)rest=rest.slice(0,leftoverMatch.index).trim();
  // Normalizar "dos con tres de chicharrón" a "dos platos con tres de chicharrón".
  rest=rest.replace(/\b(dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+con\s+(?=(?:\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve)\s+(?:tacos?\s+)?(?:de\s+)?(?:carne|frijol|chicharron|machaca|asada)\b)/g,'$1 platos con ');
