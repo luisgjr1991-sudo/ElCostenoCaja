@@ -349,6 +349,11 @@ function applySpokenOrder(transcript){
   const words=n.split(' '),last=words[words.length-1];
   if(last.endsWith('s'))forms.add([...words.slice(0,-1),last.replace(/es$|s$/,'')].join(' '));
   else forms.add([...words.slice(0,-1),last+(last.endsWith('a')||last.endsWith('o')?'s':'es')].join(' '));
+  if(words.length>1){
+   const plural=w=>w.endsWith('s')?w:w+(w.endsWith('a')||w.endsWith('o')||w.endsWith('e')?'s':'es');
+   forms.add(words.map(plural).join(' '));
+   forms.add([plural(words[0]),...words.slice(1)].join(' '));
+  }
   return [...forms].filter(x=>x.length>1);
  };
  const catalog=products.filter(p=>p&&p.name&&Number.isFinite(Number(p.price)))
