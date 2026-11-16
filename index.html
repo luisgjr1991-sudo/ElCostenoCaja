@@ -112,6 +112,28 @@ body.logo-idle-playing #headerLogo,body.logo-idle-playing.welcome-done #headerLo
 @media(prefers-reduced-motion:reduce){#logoIdleStage{display:none!important}}
 
 .order-field-voice{display:flex;align-items:stretch;gap:7px}.order-field-voice input,.order-field-voice textarea{flex:1;min-width:0;width:100%;box-sizing:border-box}.order-field-voice .order-mic{flex:0 0 45px;width:45px;min-height:45px;padding:5px;border-radius:10px;font-size:21px;align-self:flex-start}.order-field-voice .order-mic:disabled{opacity:.55}
+
+/* Diseño adaptable: tablet horizontal/vertical y teléfono con una sola APK. */
+@media (min-width: 800px) {
+ main{max-width:1240px;width:100%;padding:16px 22px}
+ #caja{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,1fr);column-gap:18px;align-items:start}
+ #caja>.emergency-row{grid-column:1/-1}
+ #caja>.card{margin:8px 0;min-width:0}
+ #caja>#currentAccountCard{grid-column:2;grid-row:2}
+ #caja>.card:not(#currentAccountCard){grid-column:1;grid-row:2}
+ #caja .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #caja .product{min-height:90px}
+ #caja #currentAccountCard{position:sticky;top:12px}
+ #pedidos,#historial,#ajustes{max-width:1100px;margin-inline:auto}
+}
+@media (min-width: 1100px) {
+ #caja{grid-template-columns:minmax(0,1.15fr) minmax(410px,0.85fr)}
+ #caja .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width: 799px) {
+ #caja{display:block}
+ #caja>#currentAccountCard{position:static}
+}
 </style></head><body><div id="logoIdleStage" aria-hidden="true"><img id="logoIdleBody" alt=""><img id="logoIdleHat" alt=""></div><header><img id="headerLogo" alt="Logo del negocio" src="./file_00000000a8b88212877a593c1893ae10.png"><h1 id="headerTitle">🌮 EL COSTEÑO</h1><small>Caja registradora</small></header><main>
 <section id="caja"><div class="emergency-row"><button id="emergencyUndo" type="button">🗑️ Borrar último cobro</button><button id="printTransferQr" type="button" style="background:#126c90;color:#fff;border-radius:9px;padding:9px 10px;font-size:12px">▦ Imprimir QR transferencia</button></div><div class="card"><h2>Productos</h2><div class="grid" id="products"></div><div class="custom-quantity"><label for="customTacoQty">Otra cantidad de tacos</label><div class="qty-entry"><input id="customTacoQty" type="number" inputmode="numeric" min="1" step="1" placeholder="Ej. 30 o 60" aria-label="Otra cantidad de tacos"><button id="addCustomTacos" class="primary" type="button">+ Agregar</button></div></div></div><div class="card hidden" id="currentAccountCard"><h2>Cuenta actual</h2><div id="cart"></div><div class="line"><span>Subtotal</span><b id="subtotal"></b></div><label class="check"><input id="invoice" type="checkbox"> FACTURA (agregar 16% IVA)</label><label class="check hidden" id="withholdingRow"><input id="withholding" type="checkbox"> Retención ISR 1.25% (solo si corresponde)</label><div class="line hidden" id="withholdingAmountRow"><span>Ret. ISR 1.25% (−)</span><b id="withholdingAmount"></b></div><div class="line hidden" id="taxrow"><span>IVA 16%</span><b id="tax"></b></div><div class="total" id="total"></div><div class="pay-method"><div style="font-weight:700;margin:10px 0 7px">Método de pago</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button type="button" id="payCash" style="border:2px solid #777;border-radius:12px;padding:13px;background:#353535;color:white">💵 Efectivo</button><button type="button" id="payCard" style="border:2px solid #777;border-radius:12px;padding:13px;background:#353535;color:white">💳 Tarjeta</button></div><div id="cardTypeDialog" class="hidden" role="dialog" aria-label="Tipo de tarjeta" style="margin-top:8px;padding:12px;border:1px solid #78bdff;border-radius:12px;background:#253547;color:white;box-shadow:0 5px 18px #0003"><div style="font-weight:700;margin-bottom:9px">Selecciona tipo de tarjeta</div><div style="display:flex;gap:9px"><button type="button" id="cardDebit" style="flex:1;padding:12px;border-radius:9px;background:#175c9c;color:white">Débito</button><button type="button" id="cardCredit" style="flex:1;padding:12px;border-radius:9px;background:#175c9c;color:white">Crédito</button></div></div></div><button class="full" id="changeToggle">CALCULAR CAMBIO</button><div id="payment" class="hidden"><label>¿Con qué billete paga?</label><div class="bills" id="bills"></div><label for="cash">Otra cantidad / efectivo recibido</label><input id="cash" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Escribe la cantidad"><div class="line"><b>Cambio a entregar</b><strong id="change"></strong></div></div><button id="charge" class="primary full">COBRAR</button><button id="chargeSendAccountant" class="full hidden" style="background:#187b45;color:white">📲 Cobrar y enviar ticket a contador</button><button id="chargePrint" class="full" style="background:#4b2a0b;color:white">🖨️ COBRAR E IMPRIMIR NOTA</button><button id="reset" class="red full">Limpiar cuenta sin cobrar</button></div></section>
 <section id="pedidos" class="hidden"><div class="card"><h2>🌮 Nuevo pedido</h2><p class="muted" id="orderVoiceStatus" aria-live="polite">Toca el micrófono junto al campo que quieras llenar. Puedes dictar y corregir el texto.</p>
