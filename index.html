@@ -372,6 +372,30 @@ document.addEventListener('focusin',e=>{if(e.target.matches('input,textarea,[con
 document.addEventListener('focusout',()=>{document.body.classList.remove('order-keyboard-open')});
 let orderPlates=[];
 function addPlate(items){orderPlates.push({id:Date.now()+Math.random(),items:{...items}});for(const [key,n] of Object.entries(items))orderQty[key]=(orderQty[key]||0)+n}
+function parseListedPlates(raw){
+ const lines=String(raw).split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+ const entries=lines.filter(x=>/^[-•*]\s*\S/.test(x));
+ if(!entries.length)return null;
+ const names=orderStewNames(),plates=[];
+ const number='(?:\\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)';
+ const flavor='(chicharron(?:es)?|machacas?|frijoles?|frijol|carnes?|asada)';
+ const countRx=new RegExp('('+number+')\\s+(?:tacos?\\s+)?(?:de\\s+)?'+flavor+'\\b','g');
+ const kind=w=>/chicharron/.test(w)?'Chicharrón':/frijol/.test(w)?'Frijol':/machaca|asada/.test(w)?names[3]:'Carne';
+ for(const entry of entries){
+  const t=spokenNormalize(entry.replace(/^[-•*]\s*/,'')),items={};
+  if(/\b(?:un|uno|una)\s+de\s+cada\s+sabor\b|\bsurtidos?\b/.test(t)){
+   for(const k of names)items[k]=1;
+  }else{
+   const matches=[...t.matchAll(countRx)];
+   for(const m of matches){const n=spokenCount(m[1]);if(n>0&&n<=100){const k=kind(m[2]);items[k]=(items[k]||0)+n}}
+   if(!matches.length)return {error:'No se entendió el renglón: '+entry,notes:raw};
+  }
+  if(!Object.keys(items).length)return {error:'Revisa el renglón: '+entry,notes:raw};
+  plates.push(items);
+ }
+ if(plates.length>50)return {error:'Máximo 50 platos por pedido.',notes:raw};
+ return {plates,notes:''};
+}
 function parsePlateSpeech(raw){
  const normalized=spokenNormalize(raw);
  const numberWord='(?:\\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)';
@@ -473,7 +497,7 @@ function editPlatesByVoice(raw){
 function applySpokenOrder(transcript){
  const raw=String(transcript||'').trim();
  const edit=editPlatesByVoice(raw);if(edit)return edit;
- const plate=parsePlateSpeech(raw);
+ const plate=parseListedPlates(raw)||parsePlateSpeech(raw);
  if(plate){
   if(plate.error)return {found:0,notes:raw,warning:plate.error};
   // Un dictado completo reemplaza el emplatado anterior, nunca lo acumula.
