@@ -901,6 +901,8 @@ header{padding-top:44px!important}
   const current=active();
   if(current==='caja'||current==='pedidos')lastMain=current;
   $('ecTopBack').hidden=current==='caja'||current==='pedidos';
+  $('ecTopBack').textContent=current==='ajustes'?'⌂':'←';
+  $('ecTopBack').setAttribute('aria-label',current==='ajustes'?'Ir a inicio de cobro':'Regresar');
   $('ecTopGear').hidden=!(current==='caja'||current==='pedidos');
  }
  function navigate(id){
@@ -916,19 +918,32 @@ header{padding-top:44px!important}
  $('ajustes').prepend(menu);
  $('ecHistoryShortcut').onclick=()=>navigate('historial');
  $('ecCutShortcut').onclick=()=>navigate('cortes');
- $('ecTopGear').onclick=()=>{origin=active();navigate('ajustes')};
+ $('ecTopGear').onclick=()=>{origin=active();navigate('ajustes');updateBackIcon()};
+ let lastExitTap=0;
  function back(){
   if(!$('settingsDetail').classList.contains('hidden')&&active()==='ajustes'){$('settingsBack').click();update();return}
   if(active()==='papelera'){const b=$('trashClose');if(b)b.click();update();return}
-  if(active()==='ajustes'&&origin!=='ajustes')navigate(origin);
-  else if(active()==='historial'||active()==='cortes')navigate('ajustes');
-  else navigate(lastMain);
+  if(active()==='ajustes'||active()==='historial'||active()==='cortes')navigate('caja');
+  else if(active()==='pedidos')navigate('caja');
+  else navigate('caja');
  }
- $('ecTopBack').onclick=back;
- document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>setTimeout(update,0)));
+ function updateBackIcon(){
+  const home=active()==='ajustes';
+  $('ecTopBack').textContent=home?'⌂':'←';
+  $('ecTopBack').setAttribute('aria-label',home?'Ir a inicio de cobro':'Regresar');
+ }
+ const originalUpdate=update;
+ window.costenoAndroidBack=function(){
+  if(active()!=='caja'){back();updateBackIcon();lastExitTap=0;return 'navigated'}
+  const now=Date.now();
+  if(now-lastExitTap<2200){lastExitTap=0;return 'exit'}
+  lastExitTap=now;return 'again';
+ };
+  $('ecTopBack').onclick=()=>{if(active()==='ajustes'){navigate('caja');updateBackIcon()}else{back();updateBackIcon()}};
+ document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>setTimeout(()=>{update();updateBackIcon()},0)));
  // The native Android back button may dispatch history traversal in the WebView.
  history.pushState({ecNav:true},'','#app');
- window.addEventListener('popstate',()=>{back();history.pushState({ecNav:true},'','#app')});
+ window.addEventListener('popstate',()=>{back();updateBackIcon();history.pushState({ecNav:true},'','#app')});
  let x=0,y=0,started=false;
  document.addEventListener('touchstart',e=>{
   const t=e.touches[0];if(!t)return;
