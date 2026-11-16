@@ -323,7 +323,7 @@ window.orderNativeSpeechResult=(status,value)=>{
  if(status==='ok'&&field&&$(field)){
   let text=String(value||'').trim();
   if(field==='orderPhone')text=text.replace(/[^0-9+]/g,'');
-  if(text){let recognized=field==='orderNotes'?applySpokenOrder(text):{found:0,notes:text};if(recognized.warning)$('orderVoiceStatus').textContent=recognized.warning;if(recognized.notes)$(field).value=($(field).value.trim()&&field!=='orderPhone'?$(field).value.trim()+' ':'')+recognized.notes;$('orderVoiceStatus').textContent=recognized.found?'Agregados '+recognized.found+' productos al pedido. Revisa las cantidades antes de imprimir.':'Dictado guardado en '+orderVoiceNames[field]+'. Puedes corregirlo o volver a dictar.';}
+  if(text){let recognized=field==='orderNotes'?applySpokenOrder(text):{found:0,notes:text};if(recognized.warning)$('orderVoiceStatus').textContent=recognized.warning;if(recognized.notes)$(field).value=($(field).value.trim()&&field!=='orderPhone'?$(field).value.trim()+' ':'')+recognized.notes;$('orderVoiceStatus').textContent=recognized.warning||recognized.message||(recognized.found?'Pedido actualizado. Revisa los platos antes de imprimir.':'Dictado guardado en '+orderVoiceNames[field]+'. Puedes corregirlo o volver a dictar.');}
   else $('orderVoiceStatus').textContent='No se reconoció contenido. Intenta nuevamente.';
  }else $('orderVoiceStatus').textContent=value||'Dictado cancelado. Puedes intentarlo otra vez.';
 };
@@ -494,8 +494,65 @@ function editPlatesByVoice(raw){
  renderOrder();
  return {found:qty*targets.length,notes:'',message:'Modificación aplicada a '+targets.length+' plato(s).'};
 }
+function interpretNaturalPlateCommand(raw){
+ const t=spokenNormalize(raw),names=orderStewNames();
+ const word='(?:\\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)';
+ const flavor='(?:carne\\s+asada|chicharrones?|machacas?|frijoles?|carnes?)';
+ const qty=w=>spokenCount(w)||0;
+ const key=w=>/chicharron/.test(w)?'Chicharrón':/frijol/.test(w)?'Frijol':/machaca|asada/.test(w)?names[3]:'Carne';
+ const assorted=()=>Object.fromEntries(names.map(k=>[k,1]));
+ const isAssorted=x=>/\b(?:surtid[oa]s?|uno?\s+de\s+cada\s+(?:sabor|guiso)|de\s+todos\s+los\s+guisos)\b/.test(x);
+ const parseItems=x=>{
+  if(isAssorted(x))return assorted();
+  const items={},re=new RegExp('\\b('+word+')\\s+(?:tacos?\\s+)?(?:de\\s+)?('+flavor+')\\b','g');
+  for(const m of x.matchAll(re)){const n=qty(m[1]);if(n>0&&n<=100){const k=key(m[2]);items[k]=(items[k]||0)+n}}
+  return Object.keys(items).length?items:null;
+ };
+ // New plates: natural variations including "otros dos", "dos platos más", "échame".
+ const addVerb=/\b(?:agrega(?:me|le|les|r)?|anade(?:me|le|les|r)?|pon(?:me|le|les|er)?|ech(?:a|ame|ale|ales)|suma(?:me|r)?|incluye|mete|quiero|dame|vas\s+a\s+agregar)\b/;
+ const explicitAdd=addVerb.test(t)&&/\b(?:platos?|ordenes?)\b/.test(t);
+ const m=t.match(new RegExp('\\b('+word+')\\s+(?:platos?|ordenes?)\\s+(?:mas\\s+)?(?:con\\s+|de\\s+)?'));
+ const reverse=t.match(new RegExp('\\b(?:otros?|otras?)\\s+('+word+')\\s+(?:platos?|ordenes?)?\\s*(?:mas\\s+)?'));
+ const countMatch=m||reverse;
+ if(explicitAdd&&countMatch){
+  const amount=qty(countMatch[1]);
+  if(!amount||amount>50||orderPlates.length+amount>50)return {found:0,warning:'Revisa cuántos platos deseas agregar (máximo 50).',notes:raw};
+  const remainder=t.slice(countMatch.index+countMatch[0].length);
+  const items=parseItems(remainder)||parseItems(t);
+  if(!items)return {found:0,warning:'Identifiqué los platos nuevos, pero no sus guisos. No se modificó el pedido.',notes:raw};
+  for(let i=0;i<amount;i++)addPlate(items);
+  renderOrder();
+  return {found:amount*Object.values(items).reduce((a,b)=>a+b,0),notes:'',message:'Agregados '+amount+' platos. Total: '+orderPlates.length+' platos.'};
+ }
+ // Changes to existing plates: explicit scope, action and quantities required.
+ const action=t.match(/\b(agrega(?:le|les|r)?|anade(?:le|les|r)?|pon(?:le|les|er)?|echale|suma(?:le|les|r)?|quita(?:le|les|r)?|retira(?:r)?|resta(?:r)?|cambia(?:le|les|r)?|reemplaza|sustituye)\b/);
+ if(!action||!orderPlates.length)return null;
+ const scopeAll=/\b(?:cada\s+(?:uno\s+de\s+los\s+)?platos?|todos\s+los\s+platos?|a\s+todos|en\s+todos)\b/.test(t);
+ const idx=t.match(new RegExp('\\b(?:plato|al\\s+plato|en\\s+el\\s+plato)\\s*('+word+')\\b'));
+ const ordinal=t.match(/\b(?:al|en|el)\s+(primero|segundo|tercero|cuarto|quinto|ultimo)\b/);
+ let targets=scopeAll?orderPlates.map((_,i)=>i):idx?[qty(idx[1])-1]:ordinal?[({primero:0,segundo:1,tercero:2,cuarto:3,quinto:4,ultimo:orderPlates.length-1})[ordinal[1]]]:[];
+ const last=t.match(new RegExp('\\b(?:los\\s+)?ultimos?\\s+('+word+')\\s+platos?\\b'));
+ if(last){const n=qty(last[1]);targets=orderPlates.map((_,i)=>i).slice(-n)}
+ if(!targets.length)return null;
+ if(targets.some(i=>i<0||i>=orderPlates.length))return {found:0,warning:'No existe uno de los platos mencionados. No se modificó nada.',notes:raw};
+ const changes=parseItems(t);
+ if(!changes||isAssorted(t))return {found:0,warning:'Indica cantidades y guisos concretos para modificar esos platos.',notes:raw};
+ const remove=/\b(?:quita|quitale|quitales|quitar|retira|retirar|resta|restar)\b/.test(action[1]);
+ const change=/\b(?:cambia|cambiale|cambiales|cambiar|reemplaza|sustituye)\b/.test(action[1]);
+ if(change)return null; // preserve dedicated replacement logic
+ if(remove&&targets.some(i=>Object.entries(changes).some(([k,n])=>(orderPlates[i].items[k]||0)<n)))return {found:0,warning:'No hay suficientes tacos para quitar. No se modificó ningún plato.',notes:raw};
+ for(const i of targets)for(const [k,n] of Object.entries(changes)){
+  const items=orderPlates[i].items;
+  items[k]=(items[k]||0)+(remove?-n:n);
+  if(!items[k])delete items[k];
+  orderQty[k]=Math.max(0,(orderQty[k]||0)+(remove?-n:n));
+ }
+ renderOrder();
+ return {found:targets.length*Object.values(changes).reduce((a,b)=>a+b,0),notes:'',message:'Se '+(remove?'quitaron':'agregaron')+' tacos en '+targets.length+' plato(s).'};
+}
 function applySpokenOrder(transcript){
  const raw=String(transcript||'').trim();
+ const natural=interpretNaturalPlateCommand(raw);if(natural)return natural;
  const normalizedAdd=spokenNormalize(raw);
  // Añadir platos nuevos no es una edición de guisos de platos existentes.
  const addAssorted=normalizedAdd.match(/\b(?:agrega(?:r|le|les)?|anade(?:r)?|pon(?:er)?|suma(?:r)?|incluye|mete)\s+(?:(?:otros?|otras?)\s+)?(\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+platos?\s+(?:mas\s+)?surtidos?\b/);
