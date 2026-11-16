@@ -339,42 +339,55 @@ function interpretOrderNotes(){
 }
 $('orderInterpret').onclick=interpretOrderNotes;
 $('orderNotes').addEventListener('change',interpretOrderNotes);
+let orderDictationDelay=null;
+$('orderNotes').addEventListener('input',()=>{
+ clearTimeout(orderDictationDelay);
+ if(/\b(?:\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve)\s+platos?\b/i.test(spokenNormalize($('orderNotes').value))){
+  orderDictationDelay=setTimeout(()=>{if(document.activeElement!==$('orderNotes'))interpretOrderNotes()},500);
+ }
+});
+$('orderNotes').addEventListener('blur',interpretOrderNotes);
 document.addEventListener('focusin',e=>{if(e.target.matches('input,textarea,[contenteditable="true"]'))document.body.classList.add('order-keyboard-open')});
 document.addEventListener('focusout',()=>{document.body.classList.remove('order-keyboard-open')});
 let orderPlates=[];
 function addPlate(items){orderPlates.push({id:Date.now()+Math.random(),items:{...items}});for(const [key,n] of Object.entries(items))orderQty[key]=(orderQty[key]||0)+n}
 function parsePlateSpeech(raw){
- const normalized=spokenNormalize(raw).replace(/[,.!?;:]/g,' ').replace(/\s+/g,' ').trim();
+ const normalized=spokenNormalize(raw);
  const countWords='(?:\\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte)';
- const number=s=>spokenCount(s)||0;
- const names=orderStewNames();
- const stew=s=>{if(/carne asada|\basada\b/.test(s))return names[3];if(/\bmachaca\b/.test(s))return names[3];if(/\bfrijol(?:es)?\b/.test(s))return 'Frijol';if(/\bchicharron\b/.test(s))return 'Chicharrón';if(/\bcarne\b/.test(s))return 'Carne';return null};
- const platePattern=new RegExp('\\b('+countWords+')\\s+platos?\\b');
- const header=normalized.match(platePattern);
+ const number=s=>spokenCount(s)||0,names=orderStewNames();
+ const header=normalized.match(new RegExp('\\b('+countWords+')\\s+platos?\\b'));
  if(!header)return null;
- let rest=normalized.slice(header.index+header[0].length).trim();
- let segments=rest.split(/\s+(?=(?:(?:otros?|otras?)\s+)?(?:uno|una|un|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+(?:platos?\s+)?(?:con|de|surtidos?\b)|(?:otro|otra)\s+con\b)/).filter(Boolean);
- if(segments.length===1)segments=rest.split(/\s+(?=otro(?:s)?\s+(?:con|de|surtidos?\b))/).filter(Boolean);
+ const rest=normalized.slice(header.index+header[0].length).trim();
+ const boundary=/(?=\b(?:uno|una|un|otro|otra|otros|otras|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|\d+)\s+(?:platos?\s+)?(?:con|de|surtidos?\b)|\b(?:otro|otra)\s+surtido\b)/g;
+ const positions=[...rest.matchAll(boundary)].map(m=>m.index).filter((v,i,a)=>i===0||v!==a[i-1]);
+ const segments=positions.map((p,i)=>rest.slice(p,positions[i+1]??rest.length).replace(/^(?:y\s+)+/,'').trim());
  const plates=[];
  for(let segment of segments){
-  segment=segment.replace(/^(?:y\s+)?/,'').trim();
-  let multi=segment.match(new RegExp('^(?:otros?\\s+|otras?\\s+)?('+countWords+')\\s+(?:platos?\\s+)?(?:con\\s+|de\\s+)?surtidos?\\b'));
-  if(!multi)multi=segment.match(new RegExp('^(?:otros?\\s+|otras?\\s+)?('+countWords+')\\s+(?:con\\s+)?surtidos?\\b'));
-  if(multi){const n=number(multi[1]);if(n>0&&n<=50)for(let j=0;j<n;j++)plates.push(Object.fromEntries(names.map(k=>[k,1])));continue}
-  if(/^(?:otros?|otras?)\s+(?:con\s+)?surtidos?\b/.test(segment)){plates.push(Object.fromEntries(names.map(k=>[k,1])));continue}
+  segment=segment.replace(/^y\s+/,'');
+  const multi=segment.match(new RegExp('^(?:(?:otros?|otras?)\\s+)?('+countWords+')\\s+(?:platos?\\s+)?(?:(?:con|de)\\s+)?surtidos?\\b'));
+  if(multi){
+   const n=number(multi[1]);if(n>0&&n<=50)for(let i=0;i<n;i++)plates.push(Object.fromEntries(names.map(k=>[k,1])));
+   continue;
+  }
+  if(/^(?:otro|otra|un|uno|una)\s+(?:(?:con|de)\s+)?surtido\b/.test(segment)){
+   plates.push(Object.fromEntries(names.map(k=>[k,1])));continue;
+  }
   segment=segment.replace(/^(?:otro|otra|uno|una|un)\s+(?:con|de)\s+/,'').replace(/^con\s+/,'');
-  const parts=segment.split(/\s+y\s+|,/).map(x=>x.trim()).filter(Boolean);
-  const items={};
-  for(let part of parts){
-   let m=part.match(new RegExp('^('+countWords+')\\s+(?:tacos?\\s+)?(?:de\\s+)?(.+)$'));
-   const qty=m?number(m[1]):1;
-   const key=stew(m?m[2]:part);
-   if(key&&qty>0)items[key]=(items[key]||0)+qty;
+  const pieces=segment.split(/\s+y\s+|,/).map(v=>v.trim()).filter(Boolean),items={};
+  for(const piece of pieces){
+   const m=piece.match(new RegExp('^('+countWords+')\\s+(?:tacos?\\s+)?(?:de\\s+)?(.+)$'));
+   const n=m?number(m[1]):1,kind=m?m[2]:piece;
+   let key=null;
+   if(/\b(?:machaca|asada)\b/.test(kind))key=names[3];
+   else if(/\bfrijol(?:es)?\b/.test(kind))key='Frijol';
+   else if(/\bchicharron\b/.test(kind))key='Chicharrón';
+   else if(/\bcarne\b/.test(kind))key='Carne';
+   if(key&&n>0)items[key]=(items[key]||0)+n;
   }
   if(Object.keys(items).length)plates.push(items);
  }
  const expected=number(header[1]);
- if(!plates.length||plates.length!==expected)return {error:'Se reconocieron '+plates.length+' platos de '+expected+'. Revisa el dictado antes de agregar.',notes:raw};
+ if(plates.length!==expected||!plates.length)return {error:'Se detectaron '+plates.length+' de '+expected+' platos. Corrige el texto y vuelve a interpretar.',notes:raw};
  return {plates,notes:''};
 }
 function applySpokenOrder(transcript){
