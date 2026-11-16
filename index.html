@@ -332,10 +332,18 @@ function applySpokenOrder(transcript){
  const raw=String(transcript||'').trim(),normalized=spokenNormalize(raw);
  const pattern=/(\b(?:\d+|un|uno|una|unos|unas|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte|veinti(?:uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve)|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien)(?:\s+y\s+(?:uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve))?)\s+(?:(?:tacos?|taquitos?|orden(?:es)?|vasos?|botellas?|latas?)\s+)?(?:de\s+)?(carne\s+asada|chicharron|machaca|frijoles?|carne|bebidas?|refrescos?|aguas?|sodas?)(?:\b)/g;
  let found=0,unmatched=normalized;
+ // Surtido = un taco de cada guiso disponible en el día; el sábado asada reemplaza machaca.
+ const assortedPattern=/(\\b(?:\\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|veinte)\\s+(?:platos?|ordenes?|tacos?)?\\s*(?:de\\s+)?surtidos?\\b|\\bun\\s+surtido\\b)/g;
+ for(const m of normalized.matchAll(assortedPattern)){
+  const count=spokenCount(m[0].split(/\\s+/)[0]);if(!Number.isSafeInteger(count)||count<1||count>10000)continue;
+  for(const stew of orderStewNames())orderQty[stew]=(orderQty[stew]||0)+count;
+  found+=count*orderStewNames().length;unmatched=unmatched.replace(m[0],' ');
+ }
+ // La machaca y la asada son el mismo cuarto guiso según el día.
  for(const m of normalized.matchAll(pattern)){
   const count=spokenCount(m[1]);if(!Number.isSafeInteger(count)||count<1||count>10000)continue;
   const kind=m[2];let key=kind.startsWith('frijol')?'Frijol':kind==='chicharron'?'Chicharrón':kind==='carne asada'?'Carne asada':kind==='machaca'?'Machaca':kind==='carne'?'Carne':'bebida';
-  if(key!=='bebida'&&!orderStewNames().includes(key))continue;
+  if(key==='Machaca'&&orderStewNames().includes('Carne asada'))key='Carne asada';if(key==='Carne asada'&&orderStewNames().includes('Machaca'))key='Machaca';if(key!=='bebida'&&!orderStewNames().includes(key))continue;
   orderQty[key]=(orderQty[key]||0)+count;found+=count;
   unmatched=unmatched.replace(m[0],' ');
  }
