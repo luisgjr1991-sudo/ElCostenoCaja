@@ -268,6 +268,51 @@ function editCommand(raw){
  return {mode:"adjust",index:ix,key:k,delta:remove?-qty:qty};
 }
 
+
+function selectedAssorted(raw){
+ const t=clean(raw);
+ const head=t.match(new RegExp("\\b"+number+"\\s+platos?\\b"));
+ if(!head)return null;
+ const total=n(head[1]);if(total<2||total>50)return null;
+ const body=t.slice(head.index+head[0].length).trim();
+ if(!/\bsurtidos?\b/.test(body))return null;
+ const ord={primero:0,primer:0,segundo:1,tercero:2,tercer:2,cuarto:3,quinto:4,sexto:5,septimo:6,octavo:7,noveno:8,decimo:9,ultimo:total-1};
+ const getIndex=w=>Object.hasOwn(ord,w)?ord[w]:n(w)-1;
+ const wordIndex="(?:primero|primer|segundo|tercero|tercer|cuarto|quinto|sexto|septimo|octavo|noveno|decimo|ultimo)";
+ const named=new RegExp("\\b(?:plato\\s+|el\\s+|al\\s+|en\\s+el\\s+)?("+wordIndex+")\\b","g");
+ const matches=[...body.matchAll(named)];
+ const plates=Array.from({length:total},()=>null);
+ const assorted=()=>Object.fromEntries(orderStewNames().map(k=>[k,1]));
+ const itemRe=new RegExp("\\b"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"\\b","g");
+ const assignments=[];
+ for(let i=0;i<matches.length;i++){
+  const idx=getIndex(matches[i][1]);if(idx<0||idx>=total)return null;
+  const part=body.slice(matches[i].index+matches[i][0].length,i+1<matches.length?matches[i+1].index:undefined);
+  const items={};for(const m of part.matchAll(itemRe)){const q=n(m[1]);if(q<1||q>100)return null;const k=keyOf(m[2]);items[k]=(items[k]||0)+q}
+  if(Object.keys(items).length)assignments.push({indices:[idx],items});
+  if(/\bsurtidos?\b/.test(part))assignments.push({indices:[idx],items:assorted()});
+ }
+ // A separate assortment scope can select any ordinal subset, range, first N or last N.
+ const scopes=[
+  ...body.matchAll(new RegExp("\\b(?:el\\s+)?("+wordIndex+")\\s+y\\s+(?:el\\s+)?("+wordIndex+")\\s+(?:van\\s+|son\\s+)?surtidos?\\b","g")),
+ ];
+ for(const m of scopes)assignments.push({indices:[getIndex(m[1]),getIndex(m[2])],items:assorted()});
+ const firstLast=body.match(new RegExp("\\b(?:los\\s+)?(primeros?|ultimos?)\\s+"+number+"\\s+(?:platos?\\s+)?(?:van\\s+|son\\s+)?surtidos?\\b"));
+ if(firstLast){
+  const count=n(firstLast[2]);if(count<1||count>total)return null;
+  assignments.push({indices:Array.from({length:count},(_,i)=>firstLast[1].startsWith("primer")?i:total-count+i),items:assorted()});
+ }
+ const range=body.match(new RegExp("\\b(?:del|desde\\s+el)\\s+("+wordIndex+")\\s+(?:al|hasta\\s+el)\\s+("+wordIndex+")\\s+(?:van\\s+|son\\s+)?surtidos?\\b"));
+ if(range){
+  const a=getIndex(range[1]),b=getIndex(range[2]);if(a>b||a<0||b>=total)return null;
+  assignments.push({indices:Array.from({length:b-a+1},(_,i)=>a+i),items:assorted()});
+ }
+ const allExcept=body.match(new RegExp("\\b(?:todos|todos\\s+los\\s+platos)\\s+surtidos?\\s+excepto\\s+(?:el\\s+)?("+wordIndex+")\\b"));
+ if(allExcept)assignments.push({indices:Array.from({length:total},(_,i)=>i).filter(i=>i!==getIndex(allExcept[1])),items:assorted()});
+ for(const a of assignments)for(const i of a.indices){if(i<0||i>=total)return null;plates[i]={...a.items}}
+ if(plates.some(p=>!p))return null;
+ return {mode:"replace",plates};
+}
 function mixedAssorted(raw){
  const t=clean(raw);
  const head=t.match(new RegExp("\\b"+number+"\\s+platos?\\b"));
@@ -296,6 +341,7 @@ function mixedAssorted(raw){
  return {mode:"replace",plates};
 }
 function parse(raw){
+ const selected=selectedAssorted(raw);if(selected)return selected;
  const mixed=mixedAssorted(raw);if(mixed)return mixed;
  const segmented=segmentedOrder(raw);if(segmented)return segmented;
  const distinct=distinctPlates(raw);if(distinct)return distinct;
