@@ -33,6 +33,8 @@ jobs:
           done
           grep -q 'cardTypeDialog' app/src/main/assets/index.html
           test -s app/src/main/assets/costeno-dictado.js
+          python3 -c 'from pathlib import Path; p=Path("app/src/main/assets/index.html"); js=Path("app/src/main/assets/costeno-dictado.js").read_text(); html=p.read_text(); marker="<script src=\"costeno-dictado.js\"></script>"; assert html.count(marker)==1, "Falta referencia al intérprete"; p.write_text(html.replace(marker,"<script>\\n"+js+"\\n</script>"))'
+          grep -q 'costenoDictadoVersion' app/src/main/assets/index.html
       - name: Compilar APK Android completa
         run: gradle assembleDebug --no-daemon
       - name: Verificar APK completa y tamaño antes de publicar
