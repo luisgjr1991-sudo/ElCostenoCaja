@@ -1038,88 +1038,95 @@ header{padding-top:44px!important}
  // The native Android back button may dispatch history traversal in the WebView.
  history.pushState({ecNav:true},'','#app');
  window.addEventListener('popstate',()=>{back();updateBackIcon();history.pushState({ecNav:true},'','#app')});
- let x=0,y=0,started=false;
- document.addEventListener('touchstart',e=>{
-  const t=e.touches[0];if(!t)return;
-  if(e.target.closest('input,textarea,select,button,[contenteditable],.order-plate,details')){started=false;return}
-  x=t.clientX;y=t.clientY;started=true;
- },{passive:true});
- document.addEventListener('touchend',e=>{
-  if(!started)return;started=false;
-  const t=e.changedTouches[0];if(!t)return;
-  const dx=t.clientX-x,dy=t.clientY-y;
-  if(Math.abs(dx)<85||Math.abs(dx)<Math.abs(dy)*1.5)return;
-  if(active()==='caja'&&dx<0)navigate('pedidos');
-  else if(active()==='pedidos'&&dx>0)navigate('caja');
- },{passive:true});
+ // El carrusel circular gestiona los gestos en un único lugar.
  update();
 })();
 </script>
+<style>
+/* Indicador de carrusel: dentro del WebView, justo encima de la barra Android. */
+#ecScreenIndicator{position:fixed;bottom:0;left:0;right:0;height:24px;z-index:8500;display:flex;align-items:center;justify-content:center;gap:9px;pointer-events:none;background:linear-gradient(0deg,#0c0b0b9c,transparent)}
+#ecScreenIndicator .ec-screen-mark{height:4px;width:27px;border-radius:8px;background:#ffffff60;transition:background .22s ease,width .22s ease,box-shadow .22s ease}
+#ecScreenIndicator .ec-screen-mark.active{width:42px;background:#ff9900;box-shadow:0 0 8px #ff99008c}
+body{padding-bottom:24px}
+@media print{#ecScreenIndicator{display:none!important}}
+</style>
+<div id="ecScreenIndicator" aria-label="Indicador de pantalla" role="status"></div>
 <script>
-/* Transición lateral: se anima solo el contenido, no el fondo ni la caja de cobro. */
+/* Carrusel circular con deslizamiento real, sin fundidos ni cambios de layout. */
 (function(){
  const ids=['caja','pedidos','historial','cortes','ajustes'];
- // Caja ↔ Pedidos: salida visible, luego entrada suave; fondo de madera inmóvil.
- let changingPrimary=false,allowPrimaryClick=false;
- document.addEventListener('click',function(e){
-  const tab=e.target.closest('[data-tab="caja"],[data-tab="pedidos"]');
-  if(!tab||allowPrimaryClick)return;
-  const from=document.querySelector('main>section:not(.hidden)');
-  const target=tab.dataset.tab;
-  if(!from||from.id===target||!['caja','pedidos'].includes(from.id))return;
-  e.preventDefault();e.stopImmediatePropagation();
-  if(changingPrimary)return;
-  changingPrimary=true;
-  const dir=target==='pedidos'?-1:1;
-  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const finish=()=>{
-   allowPrimaryClick=true;tab.click();allowPrimaryClick=false;
-   const incoming=document.getElementById(target);
-   previous=target;
-   if(incoming&&!reduced)incoming.animate(
-    [{transform:'translate3d('+(-dir*55)+'px,0,0)',opacity:.4},{transform:'translate3d(0,0,0)',opacity:1}],
-    {duration:260,easing:'cubic-bezier(.18,.72,.22,1)'}
-   );
-   changingPrimary=false;
-  };
-  if(reduced){finish();return}
-  const outgoing=from.animate(
-   [{transform:'translate3d(0,0,0)',opacity:1},{transform:'translate3d('+dir*55+'px,0,0)',opacity:.35}],
-   {duration:170,easing:'ease-in'}
-  );
-  outgoing.onfinish=finish;
-  outgoing.oncancel=()=>{if(changingPrimary)finish()};
- },true);
-
- let previous='caja',start=null,lock=false;
+ const indicator=document.getElementById('ecScreenIndicator');
+ const nodes=ids.map(()=>{const el=document.createElement('span');el.className='ec-screen-mark';indicator.appendChild(el);return el});
  const visible=()=>ids.find(id=>{const el=document.getElementById(id);return el&&!el.classList.contains('hidden')})||'caja';
- function animateChange(){
-  const next=visible();if(next===previous)return;
-  const a=ids.indexOf(previous),b=ids.indexOf(next);previous=next;
-  const section=document.getElementById(next);
-  if(!section||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-  const direction=b>=a?1:-1;
-  section.animate([{opacity:.65,transform:'translate3d('+direction*28+'px,0,0)'},{opacity:1,transform:'translate3d(0,0,0)'}],{duration:245,easing:'cubic-bezier(.2,.7,.2,1)'});
+ let current=visible(),start=null,locked=false,allowClick=false,release=0;
+ function sync(){
+  current=visible();
+  nodes.forEach((el,i)=>{el.classList.toggle('active',ids[i]===current);el.setAttribute('aria-label',ids[i])});
  }
+ function animateTo(target,dir){
+  if(locked||!ids.includes(target)||visible()===target)return;
+  const from=document.getElementById(visible());
+  const tab=document.querySelector('[data-tab="'+target+'"]');
+  if(!tab)return;
+  locked=true;
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const width=Math.max(280,document.documentElement.clientWidth);
+  const offset=(dir<0?1:-1)*width;
+  const duration=320;
+  const switchPage=()=>{
+   allowClick=true;
+   try{tab.click()}finally{allowClick=false}
+   const to=document.getElementById(target);
+   sync();
+   window.scrollTo(0,0);
+   if(!to||reduced){locked=false;return}
+   const anim=to.animate([
+    {transform:'translate3d('+(-offset)+'px,0,0)'},
+    {transform:'translate3d(0,0,0)'}
+   ],{duration,easing:'cubic-bezier(.22,.7,.2,1)'});
+   anim.onfinish=()=>{locked=false;sync()};
+   anim.oncancel=()=>{locked=false;sync()};
+   clearTimeout(release);release=setTimeout(()=>{locked=false;sync()},duration+110);
+  };
+  if(reduced||!from){switchPage();return}
+  const out=from.animate([
+   {transform:'translate3d(0,0,0)'},
+   {transform:'translate3d('+offset+'px,0,0)'}
+  ],{duration:235,easing:'cubic-bezier(.35,0,.75,.45)'});
+  out.onfinish=switchPage;
+  out.oncancel=()=>{if(locked)switchPage()};
+ }
+ // También animar los botones de navegación de Caja y Pedidos.
  document.addEventListener('click',e=>{
-  if(e.target.closest('[data-tab],#ecTopBack,#ecTopGear,#ecHistoryShortcut,#ecCutShortcut,#backToHome,#backToPrevious'))setTimeout(animateChange,0);
+  const tab=e.target.closest('[data-tab]');
+  if(!tab||allowClick||locked)return;
+  const target=tab.dataset.tab,from=visible();
+  if(!ids.includes(target)||from===target)return;
+  e.preventDefault();e.stopImmediatePropagation();
+  const a=ids.indexOf(from),b=ids.indexOf(target);
+  animateTo(target,b>a?-1:1);
  },true);
  document.addEventListener('touchstart',e=>{
-  if(e.touches.length!==1||lock)return;
-  const p=e.touches[0],el=e.target;
-  if(el.closest('input,textarea,select,button,[contenteditable],#bottomNavigation,.tabs,.qty-entry'))return;
+  if(e.touches.length!==1||locked)return;
+  const el=e.target,p=e.touches[0];
+  if(el.closest('input,textarea,select,button,[contenteditable],.order-plate,details,.qty-entry,#appDrawer,#ecTopControls'))return;
   start={x:p.clientX,y:p.clientY,time:Date.now(),page:visible()};
  },{passive:true});
  document.addEventListener('touchend',e=>{
-  if(!start||lock)return;
+  if(!start||locked)return;
   const p=e.changedTouches[0],dx=p.clientX-start.x,dy=p.clientY-start.y,from=start;start=null;
-  if(Math.abs(dx)<100||Math.abs(dx)<Math.abs(dy)*1.8||Date.now()-from.time>900)return;
-  const idx=ids.indexOf(from.page),next=ids[idx+(dx<0?1:-1)];
-  if(!next||from.page!==visible())return;
-  const tab=document.querySelector('[data-tab="'+next+'"]');
-  if(!tab)return;
-  lock=true;tab.click();animateChange();setTimeout(()=>lock=false,280);
+  if(Math.abs(dx)<90||Math.abs(dx)<Math.abs(dy)*1.5||Date.now()-from.time>1100)return;
+  if(from.page!==visible())return;
+  const index=ids.indexOf(from.page),direction=dx<0?1:-1;
+  const next=ids[(index+direction+ids.length)%ids.length];
+  animateTo(next,direction===1?-1:1);
  },{passive:true});
+ document.addEventListener('touchcancel',()=>{start=null},{passive:true});
+ // El resto de accesos (ajustes, regresar, papelera) también actualizan la rayita.
+ document.addEventListener('click',()=>{setTimeout(sync,0);setTimeout(sync,400)},false);
+ const observer=new MutationObserver(()=>{if(!locked)sync()});
+ ids.forEach(id=>{const el=document.getElementById(id);if(el)observer.observe(el,{attributes:true,attributeFilter:['class']})});
+ sync();
 })();
 </script>
 </body></html>
