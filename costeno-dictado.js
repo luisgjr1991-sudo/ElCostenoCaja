@@ -290,7 +290,7 @@ function selectedAssorted(raw){
   const part=body.slice(matches[i].index+matches[i][0].length,i+1<matches.length?matches[i+1].index:undefined);
   const items={};for(const m of part.matchAll(itemRe)){const q=n(m[1]);if(q<1||q>100)return null;const k=keyOf(m[2]);items[k]=(items[k]||0)+q}
   if(Object.keys(items).length)assignments.push({indices:[idx],items});
-  if(/\bsurtidos?\b/.test(part))assignments.push({indices:[idx],items:assorted()});
+  if(/^\s*(?:(?:y\s+)?(?:van|son|con|de)\s+)?surtidos?\b/.test(part))assignments.push({indices:[idx],items:assorted()});
  }
  // A separate assortment scope can select any ordinal subset, range, first N or last N.
  const scopes=[
