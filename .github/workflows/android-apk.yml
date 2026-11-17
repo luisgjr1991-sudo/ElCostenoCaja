@@ -31,6 +31,8 @@ jobs:
           cp index.html android/app/src/main/assets/index.html
           cp costeno-dictado.js android/app/src/main/assets/costeno-dictado.js
           test -s android/app/src/main/assets/costeno-dictado.js || { echo 'Falta intérprete de dictado'; exit 1; }
+          python3 -c 'from pathlib import Path; p=Path("android/app/src/main/assets/index.html"); js=Path("android/app/src/main/assets/costeno-dictado.js").read_text(); html=p.read_text(); marker="<script src=\"costeno-dictado.js\"></script>"; assert html.count(marker)==1, "Falta referencia al intérprete"; p.write_text(html.replace(marker,"<script>\\n"+js+"\\n</script>"))'
+          grep -q 'costenoDictadoVersion' android/app/src/main/assets/index.html
           test -s file_000000002e348212a1fdaa37bd6a866d.png || { echo 'Falta logo predeterminado de ticket'; exit 1; }
           test -s costeno_ticket_thermal.png || { echo 'Falta logo térmico de respaldo'; exit 1; }
           cp costeno_ticket_thermal.png android/app/src/main/assets/costeno_ticket_thermal.png
