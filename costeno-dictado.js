@@ -441,7 +441,37 @@ function conversationalPlates(raw){
  }
  return {mode:"replace",plates};
 }
+
+function enumeratedWithAssortedRemainder(raw){
+ const t=clean(raw).replace(/^(?:(?:van|vamos)\s+a\s+ser|seran|son|hay)\s+/,"").trim();
+ const head=t.match(new RegExp("^"+number+"\\s+platos?\\b"));
+ if(!head)return null;
+ const total=n(head[1]);if(total<2||total>50)return null;
+ let body=t.slice(head[0].length).trim();
+ const remainder=body.match(/\s+(?:y\s+)?(?:los?\s+)?(?:demas|restantes|que faltan|otros)\s+(?:platos?\s+)?(?:van\s+|son\s+)?surtidos?\s*$/);
+ if(!remainder)return null;
+ body=body.slice(0,remainder.index).trim();
+ const marker=/\b(?:uno|un|otro|el otro)\s+(?:plato\s+)?(?:con|de)\s+(?=(?:\d+|un|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\b)/g;
+ const found=[...body.matchAll(marker)];
+ if(!found.length||found.length>=total||body.slice(0,found[0].index).trim())return null;
+ const itemRe=new RegExp("\\b"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"\\b","g");
+ const plates=[];
+ for(let i=0;i<found.length;i++){
+  const part=body.slice(found[i].index+found[i][0].length,i+1<found.length?found[i+1].index:undefined).trim();
+  const items={};let residue=part;
+  for(const m of part.matchAll(itemRe)){
+   const q=n(m[1]);if(q<1||q>100)return null;
+   const k=keyOf(m[2]);items[k]=(items[k]||0)+q;residue=residue.replace(m[0]," ");
+  }
+  if(!Object.keys(items).length||residue.replace(/\b(?:y|con|de|tacos?|me|pones|pon|lleva|lleve)\b/g," ").trim())return null;
+  plates.push(items);
+ }
+ const assorted=Object.fromEntries(orderStewNames().map(k=>[k,1]));
+ while(plates.length<total)plates.push({...assorted});
+ return {mode:"replace",plates};
+}
 function parse(raw){
+ const remainder=enumeratedWithAssortedRemainder(raw);if(remainder)return remainder;
  const conversational=conversationalPlates(raw);if(conversational)return conversational;
  const enumerated=colloquialEnumerated(raw);if(enumerated)return enumerated;
  const selected=selectedAssorted(raw);if(selected)return selected;
