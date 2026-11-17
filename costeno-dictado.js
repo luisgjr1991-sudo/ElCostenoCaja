@@ -340,7 +340,41 @@ function mixedAssorted(raw){
  for(let i=0;i<count;i++)plates.push({...assorted});
  return {mode:"replace",plates};
 }
+
+function colloquialEnumerated(raw){
+ const t=clean(raw).replace(/^(?:(?:van|vamos)\s+a\s+ser|seran|son|quiero|necesito|ocupo)\s+/,"").trim();
+ const head=t.match(new RegExp("^"+number+"\\s+platos?(?:\\s+de\\s+tacos?)?\\b"));
+ if(!head)return null;
+ const count=n(head[1]);if(count<2||count>50)return null;
+ const body=t.slice(head[0].length).trim();
+ // "uno de tres de frijol, uno de cinco de machaca, otro de tres de chicharron y el ultimo surtido"
+ // The first numeric "uno" is a plate marker, not a taco quantity.
+ const marker=/\b(?:(?:y\s+)?(?:el\s+)?(?:ultimo|primero|segundo|tercero|cuarto|quinto)(?:\s+plato)?(?=\s+(?:surtido|de|con|lleva|va|son|tiene))|(?:y\s+)?(?:en\s+)?(?:uno|un|otro|el\s+otro)(?:\s+plato)?\s+de(?=\s+(?:\d+|un|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)))/g;
+ const markers=[...body.matchAll(marker)];
+ if(markers.length!==count)return null;
+ if(body.slice(0,markers[0].index).trim())return null;
+ const itemRe=new RegExp("\\b"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"\\b","g");
+ const plates=[];
+ for(let i=0;i<markers.length;i++){
+  const part=body.slice(markers[i].index+markers[i][0].length,i+1<markers.length?markers[i+1].index:undefined)
+   .replace(/^\s*(?:de|con|van|son|lleva|tiene)\s+/,"").replace(/\s+y\s*$/,"").trim();
+  if(/^(?:surtido|surtidos|un\s+surtido)$/.test(part)){
+   plates.push(Object.fromEntries(orderStewNames().map(k=>[k,1])));continue;
+  }
+  const items={};let consumed=part;
+  for(const m of part.matchAll(itemRe)){
+   const q=n(m[1]);if(q<1||q>100)return null;
+   const k=keyOf(m[2]);items[k]=(items[k]||0)+q;
+   consumed=consumed.replace(m[0]," ");
+  }
+  if(!Object.keys(items).length)return null;
+  if(consumed.replace(/\b(?:y|con|de|tacos?|me|pones|pon|lleva|lleve)\b/g," ").trim())return null;
+  plates.push(items);
+ }
+ return {mode:"replace",plates};
+}
 function parse(raw){
+ const enumerated=colloquialEnumerated(raw);if(enumerated)return enumerated;
  const selected=selectedAssorted(raw);if(selected)return selected;
  const mixed=mixedAssorted(raw);if(mixed)return mixed;
  const segmented=segmentedOrder(raw);if(segmented)return segmented;
