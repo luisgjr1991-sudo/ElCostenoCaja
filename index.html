@@ -157,6 +157,13 @@ body{padding-bottom:calc(116px + env(safe-area-inset-bottom,0px))!important}
 #appDrawer button span{font-size:25px}
 .delivery-note{font-weight:700;font-size:13px;padding:8px 2px;line-height:1.35}
 @media print{#bottomNavigation{display:none!important}}
+
+/* Fondo de madera continuo, anclado al viewport completo en todas las vistas. */
+body.custom-background{background-image:none!important;background-color:#17110e!important}
+body.custom-background::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background-image:linear-gradient(var(--bg-dim,rgba(0,0,0,.35)),var(--bg-dim,rgba(0,0,0,.35))),var(--custom-bg);background-size:100% 100%,var(--bg-size,cover);background-position:center,var(--bg-x,50%) var(--bg-y,50%);background-repeat:no-repeat;transform:translateZ(0)}
+html{min-height:100%;background:#17110e}
+body.custom-background{min-height:100dvh}
+@media(prefers-reduced-motion:reduce){main>section{animation:none!important}}
 </style></head><body><div id="logoIdleStage" aria-hidden="true"><img id="logoIdleBody" alt=""><img id="logoIdleHat" alt=""></div><header><img id="headerLogo" alt="Logo del negocio" src="./file_00000000a8b88212877a593c1893ae10.png"><h1 id="headerTitle">🌮 EL COSTEÑO</h1><small>Caja registradora</small></header><main>
 <section id="caja"><div class="emergency-row"><button id="emergencyUndo" type="button">🗑️ Borrar último cobro</button><button id="printTransferQr" type="button" style="background:#126c90;color:#fff;border-radius:9px;padding:9px 10px;font-size:12px">▦ Imprimir QR transferencia</button></div><div class="card"><h2>Productos</h2><div class="grid" id="products"></div><div class="custom-quantity"><label for="customTacoQty">Otra cantidad de tacos</label><div class="qty-entry"><input id="customTacoQty" type="number" inputmode="numeric" min="1" step="1" placeholder="Ej. 30 o 60" aria-label="Otra cantidad de tacos"><button id="addCustomTacos" class="primary" type="button">+ Agregar</button></div></div></div><div class="card hidden" id="currentAccountCard"><h2>Cuenta actual</h2><div id="cart"></div><div class="line"><span>Subtotal</span><b id="subtotal"></b></div><label class="check"><input id="invoice" type="checkbox"> FACTURA (agregar 16% IVA)</label><label class="check hidden" id="withholdingRow"><input id="withholding" type="checkbox"> Retención ISR 1.25% (solo si corresponde)</label><div class="line hidden" id="withholdingAmountRow"><span>Ret. ISR 1.25% (−)</span><b id="withholdingAmount"></b></div><div class="line hidden" id="taxrow"><span>IVA 16%</span><b id="tax"></b></div><div class="total" id="total"></div><div class="pay-method"><div style="font-weight:700;margin:10px 0 7px">Método de pago</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button type="button" id="payCash" style="border:2px solid #777;border-radius:12px;padding:13px;background:#353535;color:white">💵 Efectivo</button><button type="button" id="payCard" style="border:2px solid #777;border-radius:12px;padding:13px;background:#353535;color:white">💳 Tarjeta</button></div><div id="cardTypeDialog" class="hidden" role="dialog" aria-label="Tipo de tarjeta" style="margin-top:8px;padding:12px;border:1px solid #78bdff;border-radius:12px;background:#253547;color:white;box-shadow:0 5px 18px #0003"><div style="font-weight:700;margin-bottom:9px">Selecciona tipo de tarjeta</div><div style="display:flex;gap:9px"><button type="button" id="cardDebit" style="flex:1;padding:12px;border-radius:9px;background:#175c9c;color:white">Débito</button><button type="button" id="cardCredit" style="flex:1;padding:12px;border-radius:9px;background:#175c9c;color:white">Crédito</button></div></div></div><button class="full" id="changeToggle">CALCULAR CAMBIO</button><div id="payment" class="hidden"><label>¿Con qué billete paga?</label><div class="bills" id="bills"></div><label for="cash">Otra cantidad / efectivo recibido</label><input id="cash" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Escribe la cantidad"><div class="line"><b>Cambio a entregar</b><strong id="change"></strong></div></div><button id="charge" class="primary full">COBRAR</button><button id="chargeSendAccountant" class="full hidden" style="background:#187b45;color:white">📲 Cobrar y enviar ticket a contador</button><button id="chargePrint" class="full" style="background:#4b2a0b;color:white">🖨️ COBRAR E IMPRIMIR NOTA</button><button id="reset" class="red full">Limpiar cuenta sin cobrar</button></div></section>
 <section id="pedidos" class="hidden"><div class="card"><h2>🌮 Nuevo pedido</h2>
@@ -961,4 +968,40 @@ header{padding-top:44px!important}
  },{passive:true});
  update();
 })();
-</script><script src="costeno-dictado.js"></script></body></html>
+</script><script src="costeno-dictado.js"></script>
+<script>
+/* Transición lateral: se anima solo el contenido, no el fondo ni la caja de cobro. */
+(function(){
+ const ids=['caja','pedidos','historial','cortes','ajustes'];
+ let previous='caja',start=null,lock=false;
+ const visible=()=>ids.find(id=>{const el=document.getElementById(id);return el&&!el.classList.contains('hidden')})||'caja';
+ function animateChange(){
+  const next=visible();if(next===previous)return;
+  const a=ids.indexOf(previous),b=ids.indexOf(next);previous=next;
+  const section=document.getElementById(next);
+  if(!section||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const direction=b>=a?1:-1;
+  section.animate([{opacity:.65,transform:'translate3d('+direction*28+'px,0,0)'},{opacity:1,transform:'translate3d(0,0,0)'}],{duration:245,easing:'cubic-bezier(.2,.7,.2,1)'});
+ }
+ document.addEventListener('click',e=>{
+  if(e.target.closest('[data-tab],#ecTopBack,#ecTopGear,#ecHistoryShortcut,#ecCutShortcut,#backToHome,#backToPrevious'))setTimeout(animateChange,0);
+ },true);
+ document.addEventListener('touchstart',e=>{
+  if(e.touches.length!==1||lock)return;
+  const p=e.touches[0],el=e.target;
+  if(el.closest('input,textarea,select,button,[contenteditable],#bottomNavigation,.tabs,.qty-entry'))return;
+  start={x:p.clientX,y:p.clientY,time:Date.now(),page:visible()};
+ },{passive:true});
+ document.addEventListener('touchend',e=>{
+  if(!start||lock)return;
+  const p=e.changedTouches[0],dx=p.clientX-start.x,dy=p.clientY-start.y,from=start;start=null;
+  if(Math.abs(dx)<100||Math.abs(dx)<Math.abs(dy)*1.8||Date.now()-from.time>900)return;
+  const idx=ids.indexOf(from.page),next=ids[idx+(dx<0?1:-1)];
+  if(!next||from.page!==visible())return;
+  const tab=document.querySelector('[data-tab="'+next+'"]');
+  if(!tab)return;
+  lock=true;tab.click();animateChange();setTimeout(()=>lock=false,280);
+ },{passive:true});
+})();
+</script>
+</body></html>
