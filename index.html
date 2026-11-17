@@ -972,6 +972,38 @@ header{padding-top:44px!important}
 /* Transición lateral: se anima solo el contenido, no el fondo ni la caja de cobro. */
 (function(){
  const ids=['caja','pedidos','historial','cortes','ajustes'];
+ // Caja ↔ Pedidos: salida visible, luego entrada suave; fondo de madera inmóvil.
+ let changingPrimary=false,allowPrimaryClick=false;
+ document.addEventListener('click',function(e){
+  const tab=e.target.closest('[data-tab="caja"],[data-tab="pedidos"]');
+  if(!tab||allowPrimaryClick)return;
+  const from=document.querySelector('main>section:not(.hidden)');
+  const target=tab.dataset.tab;
+  if(!from||from.id===target||!['caja','pedidos'].includes(from.id))return;
+  e.preventDefault();e.stopImmediatePropagation();
+  if(changingPrimary)return;
+  changingPrimary=true;
+  const dir=target==='pedidos'?-1:1;
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const finish=()=>{
+   allowPrimaryClick=true;tab.click();allowPrimaryClick=false;
+   const incoming=document.getElementById(target);
+   previous=target;
+   if(incoming&&!reduced)incoming.animate(
+    [{transform:'translate3d('+(-dir*55)+'px,0,0)',opacity:.4},{transform:'translate3d(0,0,0)',opacity:1}],
+    {duration:260,easing:'cubic-bezier(.18,.72,.22,1)'}
+   );
+   changingPrimary=false;
+  };
+  if(reduced){finish();return}
+  const outgoing=from.animate(
+   [{transform:'translate3d(0,0,0)',opacity:1},{transform:'translate3d('+dir*55+'px,0,0)',opacity:.35}],
+   {duration:170,easing:'ease-in'}
+  );
+  outgoing.onfinish=finish;
+  outgoing.oncancel=()=>{if(changingPrimary)finish()};
+ },true);
+
  let previous='caja',start=null,lock=false;
  const visible=()=>ids.find(id=>{const el=document.getElementById(id);return el&&!el.classList.contains('hidden')})||'caja';
  function animateChange(){
