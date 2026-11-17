@@ -252,7 +252,7 @@ function openProductIconPicker(productId){
  backdrop.innerHTML='<div class="icon-picker-panel" role="dialog" aria-modal="true" aria-label="Elegir icono de producto"><h2>Elige un icono</h2><p class="muted">Toca el dibujo que quieras mostrar en el botón del producto.</p><div class="icon-picker-cats"></div><div class="icon-picker-grid"></div><div class="icon-picker-upload"><button type="button" data-icon-upload>📷 Elegir imagen de mi galería</button><input type="file" accept="image/png,image/jpeg,image/webp" data-icon-file style="display:none"></div><div class="icon-picker-actions"><button type="button" data-icon-cancel>Cancelar</button><button type="button" class="primary" data-icon-none>Sin icono</button></div></div>';
  document.body.appendChild(backdrop);
  const close=()=>backdrop.remove();
- const choose=icon=>{if(target){target.icon=icon;save('ec_products',products);render()}else{pendingNewProductIcon=icon;$('newProductIcon').textContent=(icon||'◻️')+' Elegir icono'}close()};
+ const choose=icon=>{if(target){target.icon=icon;save('ec_products',products);render()}else{pendingNewProductIcon=icon;$('newProductIcon').textContent=(typeof icon==='string'&&icon.startsWith('data:image/'))?'🖼️ Imagen elegida':(icon||'◻️')+' Elegir icono'}close()};
  const cats=backdrop.querySelector('.icon-picker-cats'),grid=backdrop.querySelector('.icon-picker-grid');
  const selected=target?target.icon:pendingNewProductIcon;
  const show=category=>{grid.innerHTML='';productIconCategories[category].forEach(icon=>{const b=document.createElement('button');b.type='button';b.innerHTML=productIconMarkup(icon);b.setAttribute('aria-label','Elegir '+icon);if(icon===selected)b.classList.add('selected');b.onclick=()=>choose(icon);grid.appendChild(b)})};
@@ -1426,6 +1426,73 @@ body[data-costeno-font-style="bold"] main,body[data-costeno-font-style="bold"] b
   document.getElementById('costenoResetIcons').onclick=()=>{options.forEach(([,type])=>save('ec_gallery_'+type,'Tableta'));apply()};
  }
  apply();
+})();
+</script>
+<style>
+.ec-pack-icon{width:1.4em;height:1.4em;object-fit:contain;vertical-align:middle;margin-right:5px}
+#costenoTabletNav .ec-pack-icon{width:29px;height:29px;margin:0}
+body[data-costeno-icon-style="line"] .ec-pack-icon,body[data-costeno-icon-style="line"] #costenoTabletNav svg{filter:grayscale(1) brightness(1.6)!important}
+body[data-costeno-icon-style="classic"] .ec-pack-icon,body[data-costeno-icon-style="classic"] #costenoTabletNav svg{filter:sepia(.9)!important}
+#costenoPackManager{margin-top:14px}
+#costenoPackManager input{max-width:100%}
+</style>
+<script>
+(function(){
+ const store='ec_icon_packs',selected='ec_active_pack';
+ const built=[{id:'original',name:'Original',products:{},ui:{}},{id:'emoji',name:'Emojis',products:{Taco:'🌮',Bebida:'🥤'},ui:{caja:'🏠',pedidos:'🧾',historial:'🕘',cortes:'📊',ajustes:'⚙️',trash:'🗑️',qr:'▦'}}];
+ const valid=v=>typeof v==='string'&&(v.length<=8&&!/[<>]/.test(v)||v.length<160000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v));
+ const read=()=>{try{const v=JSON.parse(localStorage.getItem(store)||'[]');return Array.isArray(v)?v.slice(0,12):[]}catch(e){return []}};
+ const all=()=>built.concat(read());
+ const active=()=>all().find(p=>p.id===localStorage.getItem(selected))||built[0];
+ const node=v=>{if(v.startsWith('data:image/')){const i=document.createElement('img');i.src=v;i.className='ec-pack-icon';i.alt='';return i}const i=document.createElement('span');i.className='ec-pack-icon-text';i.textContent=v;return i};
+ function apply(){
+  const p=active();
+  document.querySelectorAll('#costenoTabletNav [data-tab]').forEach(b=>{
+   const old=b.querySelector('.ec-pack-icon,.ec-pack-icon-text');if(old)old.remove();
+   const v=p.ui&&p.ui[b.dataset.tab],svg=b.querySelector('svg');if(svg)svg.style.display=valid(v)?'none':'';
+   if(valid(v))b.insertBefore(node(v),b.firstChild);
+  });
+  [['emergencyUndo','trash'],['printTransferQr','qr']].forEach(([id,key])=>{
+   const b=document.getElementById(id);if(!b)return;
+   const old=b.querySelector('.ec-pack-icon,.ec-pack-icon-text');if(old)old.remove();
+   const v=p.ui&&p.ui[key],svg=b.querySelector('svg');if(svg)svg.style.display=valid(v)?'none':'';
+   if(valid(v))b.insertBefore(node(v),b.firstChild);
+  });
+  const select=document.getElementById('costenoActivePack');
+  if(select){select.replaceChildren();all().forEach(x=>{const o=document.createElement('option');o.value=x.id;o.textContent=x.name;select.appendChild(o)});select.value=p.id}
+ }
+ function categories(){
+  Object.keys(productIconCategories).filter(k=>k.startsWith('Paquete: ')).forEach(k=>delete productIconCategories[k]);
+  all().forEach(p=>{const icons=Object.values(p.products||{}).filter(valid);if(icons.length)productIconCategories['Paquete: '+p.name]=[...new Set(icons)]});
+ }
+ function refresh(){categories();apply()}
+ const visual=document.getElementById('visualStyleSettings');
+ if(visual){
+  const box=document.createElement('div');box.id='costenoPackManager';
+  box.innerHTML='<h2>📦 Paquetes de iconos</h2><p class="muted">Importa un archivo JSON de iconos para productos y botones. Selecciona el paquete para aplicarlo en la aplicación y elige sus dibujos desde Productos → Icono.</p><label for="costenoActivePack">Paquete activo</label><select id="costenoActivePack"></select><label for="costenoPackFile">Agregar paquete JSON</label><input id="costenoPackFile" type="file" accept=".json,application/json"><button type="button" id="costenoPackExample">Descargar ejemplo</button><button type="button" id="costenoPackDelete">Eliminar paquete seleccionado</button><p id="costenoPackMessage" class="muted"></p>';
+  visual.appendChild(box);
+  box.querySelector('#costenoActivePack').onchange=e=>{localStorage.setItem(selected,e.target.value);apply()};
+  box.querySelector('#costenoPackDelete').onclick=()=>{const id=active().id;if(id==='original'||id==='emoji')return alert('Este paquete viene incluido.');if(!confirm('¿Eliminar paquete?'))return;localStorage.setItem(store,JSON.stringify(read().filter(x=>x.id!==id)));localStorage.setItem(selected,'original');refresh()};
+  box.querySelector('#costenoPackExample').onclick=()=>{const data={name:'Mi paquete',products:{Taco:'🌮',Bebida:'🥤'},ui:{caja:'🏠',pedidos:'🧾',historial:'🕘',cortes:'📊',ajustes:'⚙️',trash:'🗑️',qr:'▦'}};const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='paquete-iconos-ejemplo.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+  box.querySelector('#costenoPackFile').onchange=async e=>{
+   const file=e.target.files&&e.target.files[0];if(!file)return;
+   try{
+    if(file.size>1000000)throw Error('Máximo 1 MB por paquete');
+    const data=JSON.parse(await file.text());if(!data||typeof data.name!=='string'||!data.name.trim())throw Error('Falta el nombre');
+    const products={},ui={};
+    Object.entries(data.products||{}).forEach(([k,v])=>{if(k.length<60&&valid(v))products[k]=v});
+    Object.entries(data.ui||{}).forEach(([k,v])=>{if(['caja','pedidos','historial','cortes','ajustes','trash','qr'].includes(k)&&valid(v))ui[k]=v});
+    if(!Object.keys(products).length&&!Object.keys(ui).length)throw Error('No hay iconos válidos');
+    const packs=read();if(packs.length>=12)throw Error('Máximo 12 paquetes');
+    const p={id:'pack_'+Date.now(),name:data.name.slice(0,45),products,ui};packs.push(p);
+    localStorage.setItem(store,JSON.stringify(packs));localStorage.setItem(selected,p.id);refresh();
+    box.querySelector('#costenoPackMessage').textContent='Paquete '+p.name+' agregado correctamente';
+   }catch(err){alert('No se pudo importar: '+err.message)}
+   e.target.value='';
+  };
+ }
+ const style=document.getElementById('costenoIconStyle');if(style)style.addEventListener('change',()=>setTimeout(apply,0));
+ refresh();
 })();
 </script>
 </body></html>
