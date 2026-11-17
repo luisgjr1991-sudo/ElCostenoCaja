@@ -230,7 +230,22 @@ function flexibleEdit(raw){
  }
  return null;
 }
+
+function plateFirstEdit(raw){
+ const t=clean(raw,true);
+ const m=t.match(new RegExp("^(?:al|en el|para el|del)\\s+plato\\s+(primero|primer|segundo|tercero|tercer|cuarto|quinto|ultimo|\\d+|uno|dos|tres|cuatro|cinco)\\s+(?:le\\s+)?(agrega|agregale|anade|pon|ponle|suma|sumale|quita|quitale|retira|resta|restale|saca|sacale|echale)\\s+(.+)$"));
+ if(!m)return null;
+ const ix=({primero:0,primer:0,segundo:1,tercero:2,tercer:2,cuarto:3,quinto:4,ultimo:orderPlates.length-1})[m[1]]??n(m[1])-1;
+ if(ix<0||ix>=orderPlates.length)return {error:"No existe ese plato."};
+ const item=m[3].match(new RegExp("^"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"$"));
+ if(!item)return {error:"No entendí cantidad y guiso para ese plato."};
+ const qty=n(item[1]);if(qty<1||qty>100)return {error:"Cantidad de tacos no válida."};
+ const k=keyOf(item[2]),remove=/^(?:quita|quitale|retira|resta|restale|saca|sacale)$/.test(m[2]);
+ if(remove&&(orderPlates[ix].items[k]||0)<qty)return {error:"El plato no tiene suficientes tacos de "+k+"."};
+ return {mode:"adjust",index:ix,key:k,delta:remove?-qty:qty};
+}
 function editCommand(raw){
+ const plateFirst=plateFirstEdit(raw);if(plateFirst)return plateFirst;
  const flexible=flexibleEdit(raw);if(flexible)return flexible;
  const trailing=trailingPlateEdit(raw);if(trailing)return trailing;
  const generalized=generalEdit(raw);if(generalized)return generalized;
