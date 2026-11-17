@@ -323,7 +323,7 @@ window.orderNativeSpeechResult=(status,value)=>{
  if(status==='ok'&&field&&$(field)){
   let text=String(value||'').trim();
   if(field==='orderPhone')text=text.replace(/[^0-9+]/g,'');
-  if(text){let recognized=field==='orderNotes'?applySpokenOrder(text):{found:0,notes:text};if(recognized.warning)$('orderVoiceStatus').textContent=recognized.warning;if(recognized.notes)$(field).value=($(field).value.trim()&&field!=='orderPhone'?$(field).value.trim()+' ':'')+recognized.notes;$('orderVoiceStatus').textContent=recognized.warning||recognized.message||(recognized.found?'Pedido actualizado. Revisa los platos antes de imprimir.':'Dictado guardado en '+orderVoiceNames[field]+'. Puedes corregirlo o volver a dictar.');}
+  if(text){if(field==='orderNotes'){$('orderVoiceStatus').textContent='Escuché: «'+text+'»';}let recognized=field==='orderNotes'?applySpokenOrder(text):{found:0,notes:text};if(recognized.warning)$('orderVoiceStatus').textContent=recognized.warning;if(recognized.notes)$(field).value=($(field).value.trim()&&field!=='orderPhone'?$(field).value.trim()+' ':'')+recognized.notes;$('orderVoiceStatus').textContent=(field==='orderNotes'?'Escuché: «'+text+'». ':'')+(recognized.warning||recognized.message||(recognized.found?'Pedido actualizado. Revisa los platos antes de imprimir.':'Dictado guardado en '+orderVoiceNames[field]+'. Puedes corregirlo o volver a dictar.'));}
   else $('orderVoiceStatus').textContent='No se reconoció contenido. Intenta nuevamente.';
  }else $('orderVoiceStatus').textContent=value||'Dictado cancelado. Puedes intentarlo otra vez.';
 };
