@@ -244,7 +244,34 @@ function plateFirstEdit(raw){
  if(remove&&(orderPlates[ix].items[k]||0)<qty)return {error:"El plato no tiene suficientes tacos de "+k+"."};
  return {mode:"adjust",index:ix,key:k,delta:remove?-qty:qty};
 }
+
+function semanticPlateEdit(raw){
+ const t=clean(raw,true);
+ const verbs={add:/\b(?:agrega|agregale|agregar|agregame|anade|anademe|pon|ponle|ponme|poner|suma|sumale|sumar|echale|echame|mete|metele|incluye|aumenta|aumentale|añade)\b/g,
+ remove:/\b(?:quita|quitale|quitar|quitame|resta|restale|restar|saca|sacale|sacame|retira|retirale|elimina|eliminale|descuenta|descuentale)\b/g};
+ const foundActions=Object.entries(verbs).flatMap(([kind,re])=>[...t.matchAll(re)].map(m=>({kind,start:m.index,end:m.index+m[0].length})));
+ if(foundActions.length!==1)return null;
+ const targetRe=/\b(?:(?:al|del|para el|en el|de el|el)\s+)?(?:plato\s+)?(primero|primer|segundo|tercero|tercer|cuarto|quinto|sexto|septimo|octavo|noveno|decimo|ultimo|\d+|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)(?:\s+plato)?\b/g;
+ const ord={primero:0,primer:0,segundo:1,tercero:2,tercer:2,cuarto:3,quinto:4,sexto:5,septimo:6,octavo:7,noveno:8,decimo:9,ultimo:orderPlates.length-1};
+ const targets=[...t.matchAll(targetRe)].filter(m=>/\bplato\b|\b(?:primero|primer|segundo|tercero|tercer|cuarto|quinto|sexto|septimo|octavo|noveno|decimo|ultimo)\b/.test(m[0]));
+ if(targets.length!==1)return null;
+ const target=targets[0],ix=Object.hasOwn(ord,target[1])?ord[target[1]]:n(target[1])-1;
+ if(ix<0||ix>=orderPlates.length)return {error:"No existe ese plato."};
+ const withoutTarget=(t.slice(0,target.index)+" "+t.slice(target.index+target[0].length)).trim();
+ const withoutVerb=withoutTarget.replace(verbs[foundActions[0].kind]," ").replace(/\s+/g," ").trim();
+ const itemRe=new RegExp("\\b"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"\\b","g");
+ const matches=[...withoutVerb.matchAll(itemRe)];
+ if(matches.length!==1)return null;
+ const qty=n(matches[0][1]),key=keyOf(matches[0][2]);
+ if(qty<1||qty>100)return {error:"Cantidad no válida."};
+ const residue=withoutVerb.replace(matches[0][0]," ").replace(/\b(?:al|del|para|en|el|de|le|los|las|tacos?|por|favor|mas|menos|a|ese|este|quiero|necesito|que)\b/g," ").trim();
+ if(residue)return null;
+ const delta=foundActions[0].kind==="remove"?-qty:qty;
+ if(delta<0&&(orderPlates[ix].items[key]||0)<qty)return {error:"El plato no tiene suficientes tacos de "+key+"."};
+ return {mode:"adjust",index:ix,key,delta};
+}
 function editCommand(raw){
+ const semantic=semanticPlateEdit(raw);if(semantic)return semantic;
  const plateFirst=plateFirstEdit(raw);if(plateFirst)return plateFirst;
  const flexible=flexibleEdit(raw);if(flexible)return flexible;
  const trailing=trailingPlateEdit(raw);if(trailing)return trailing;
