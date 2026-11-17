@@ -549,7 +549,49 @@ function incrementalSinglePlate(raw){
  if(!Object.keys(items).length||residue.replace(/\b(?:y|con|de|tacos?|tambien)\b/g," ").trim())return null;
  return {mode:"append",plates:[items]};
 }
+
+function compoundPlateEdit(raw){
+ const t=clean(raw,true).replace(/\b(?:frijoles)\b/g,"frijol");
+ const targetRe=/\b(?:(?:al|en el|del|para el|el)\s+)?(?:plato\s+)(primero|primer|segundo|tercero|tercer|cuarto|quinto|sexto|septimo|octavo|noveno|decimo|ultimo|\d+|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\b|\b(?:al|en el|del)\s+(primero|segundo|tercero|cuarto|quinto|ultimo)\s+plato\b/;
+ const target=t.match(targetRe);
+ if(!target)return null;
+ const ord={primero:0,primer:0,segundo:1,tercero:2,tercer:2,cuarto:3,quinto:4,sexto:5,septimo:6,octavo:7,noveno:8,decimo:9,ultimo:orderPlates.length-1};
+ const word=target[1]||target[2],index=Object.hasOwn(ord,word)?ord[word]:n(word)-1;
+ const commands=/(?:agrega(?:le|me|r)?|anade(?:le|me|r)?|pon(?:le|me|er)?|suma(?:le|me|r)?|mete(?:le|r)?|quita(?:le|me|r)?|resta(?:le|r)?|saca(?:le|r)?|retira(?:le|r)?|cambia(?:le|r)?|sustituye|reemplaza)/g;
+ const withoutTarget=(t.slice(0,target.index)+" "+t.slice(target.index+target[0].length)).trim();
+ const matches=[...withoutTarget.matchAll(commands)];
+ if(!matches.length)return null;
+ if(index<0||index>=orderPlates.length)return {error:"No existe ese plato."};
+ const itemRe=new RegExp("^\\s*(?:"+number+")\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"\\s*$");
+ const changes={};
+ for(let i=0;i<matches.length;i++){
+  const verb=matches[i][0];
+  let segment=withoutTarget.slice(matches[i].index+verb.length,i+1<matches.length?matches[i+1].index:undefined)
+   .replace(/^\s*(?:le\s+)?/,"").replace(/\s+(?:y|y\s+le|y\s+ponle|y\s+agregale)\s*$/,"").trim();
+  // A replacement can be said as "cámbiale uno de frijol por uno de machaca".
+  if(/^(?:cambia|sustituye|reemplaza)/.test(verb)){
+   const pair=segment.split(/\s+por\s+/);
+   if(pair.length!==2)return {error:"Indica el guiso que sale y el que entra."};
+   const from=pair[0].match(itemRe),to=pair[1].match(itemRe);
+   if(!from||!to)return {error:"Indica cantidades y guisos para el cambio."};
+   const q1=n(from[1]),q2=n(to[1]);if(q1<1||q2<1||q1>100||q2>100)return {error:"Cantidad no válida."};
+   changes[keyOf(from[2])]=(changes[keyOf(from[2])]||0)-q1;
+   changes[keyOf(to[2])]=(changes[keyOf(to[2])]||0)+q2;
+   continue;
+  }
+  const item=segment.match(itemRe);
+  if(!item)return {error:"Indica la cantidad y el guiso para modificar ese plato."};
+  const q=n(item[1]);if(q<1||q>100)return {error:"Cantidad no válida."};
+  const key=keyOf(item[2]),sign=/^(?:quita|resta|saca|retira)/.test(verb)?-1:1;
+  changes[key]=(changes[key]||0)+sign*q;
+ }
+ const plate=orderPlates[index].items;
+ for(const [key,delta] of Object.entries(changes))if((plate[key]||0)+delta<0)return {error:"El plato no tiene suficientes tacos de "+key+"."};
+ if(!Object.values(changes).some(Boolean))return {error:"No hay cambios que aplicar."};
+ return {mode:"adjustBatch",index,changes};
+}
 function parse(raw){
+ const compound=compoundPlateEdit(raw);if(compound)return compound;
  const incremental=incrementalSinglePlate(raw);if(incremental)return incremental;
  const named=namedPlateAssignments(raw);if(named)return named;
  const individually=individuallyAssignedPlates(raw);if(individually)return individually;
@@ -634,6 +676,12 @@ applySpokenOrder=function(transcript){
   return previous(transcript);
  }
  if(result.error)return {found:0,notes:transcript,warning:result.error};
+ if(result.mode==="adjustBatch"){
+  const items=orderPlates[result.index].items;
+  for(const [key,delta] of Object.entries(result.changes)){items[key]=(items[key]||0)+delta;if(!items[key])delete items[key];}
+  renderOrder();
+  return {found:Object.values(result.changes).reduce((sum,x)=>sum+Math.abs(x),0),notes:"",message:"Plato "+(result.index+1)+" actualizado. Revisa sus guisos."};
+ }
  if(result.mode==="adjustMany"){
   for(const i of result.targets)for(const [k,q] of Object.entries(result.items)){
    const delta=q*result.sign,items=orderPlates[i].items;
