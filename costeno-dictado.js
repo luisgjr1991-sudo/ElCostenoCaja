@@ -647,6 +647,7 @@ function parse(raw){
  return null;
 }
 const previous=applySpokenOrder;
+window.costenoDictadoVersion="2026-11-16-integrado";
 applySpokenOrder=function(transcript){
  // Never silently substitute Saturday asada for spoken machaca, or vice versa.
  const heardStew=clean(transcript,true);
@@ -655,40 +656,10 @@ applySpokenOrder=function(transcript){
  if(/\b(?:carne asada|asada)\b/.test(heardStew)&&todayStew!=="Carne asada")return {found:0,notes:transcript,warning:"La Carne asada se ofrece los sábados. No cambié el pedido."};
  const result=parse(transcript);
  if(!result){
-  // Reject unparsed plate requests rather than changing only aggregate taco totals.
-  if(/\\b(?:otro|otra|otros|otras|uno mas|otro mas|cuarto|cuarta|plato|platos)\\b/.test(clean(transcript)))return {found:0,notes:"",warning:"No entendí la orden de platos. No cambié el pedido."};
-  const normalized=clean(transcript);
-  if(new RegExp("\\b"+number+"\\s+platos?\\b").test(normalized))return {found:0,notes:transcript,warning:"No pude separar todos los platos. No cambié el pedido."};
-  // Never let the old interpreter change only the aggregate count for a plate-specific edit.
-  const editText=clean(transcript,true);
-  if(/\b(?:agrega|agregar|agregale|ponle|pon|quita|quitar|quitale|sacale|echale|sumale|restale|retira)\b/.test(editText)&&
-     /\b(?:plato|primero|segundo|tercero|cuarto|quinto|ultimo|a todos|cada uno)\b/.test(editText)){
-   return {found:0,notes:transcript,warning:"No pude identificar la modificación del plato. El pedido y sus totales permanecen iguales."};
-  }
-  // Do not pass multi-plate orders to the legacy parser: it can repeat one mix
-  // in every plate even when the speaker described different plates.
-  const safetyText=clean(transcript);
-  if(new RegExp("\\b"+number+"\\s+platos?\\b").test(safetyText)&&
-     /\b(?:primero|segundo|tercero|en otro|otro plato|un plato|uno con)\b/.test(safetyText)){
-   return {found:0,notes:transcript,warning:"No pude identificar todos los platos por separado. El pedido anterior se conserva."};
-  }
-  // Evitar que el intérprete anterior invente Carne cuando se nombraron otros guisos.
-  const heard=clean(transcript);
-  const explicitlyOther=/\b(?:frijol(?:es)?|chicharron(?:es)?|machaca|asada)\b/.test(heard);
-  if(explicitlyOther){
-   const beforePlates=orderPlates.map(p=>({id:p.id,items:{...p.items}}));
-   const beforeQty={...orderQty};
-   const fallback=previous(transcript);
-   const added=orderPlates.slice(beforePlates.length);
-   const onlyCarne=added.length>0&&added.every(p=>Object.keys(p.items).every(k=>k==="Carne"));
-   if(onlyCarne){
-    orderPlates=beforePlates;
-    orderQty=beforeQty;
-    renderOrder();
-    return {found:0,notes:transcript,warning:"El dictado menciona otros guisos, pero no pude asignarlos a cada plato. No registré tacos de Carne por defecto. Revisa o dicta nuevamente."};
-   }
-   return fallback;
-  }
+  // Never send plate creation or modification to the old interpreter.
+  const t=clean(transcript,true);
+  if(/\\b(?:platos?|primero|segundo|tercero|cuarto|quinto|ultimo|otros?|agrega|agregale|quita|quitale|cambia|cambiale|ponle|sumale)\\b/.test(t))
+   return {found:0,notes:"",warning:"No entendí completamente el cambio de platos. No modifiqué el pedido."};
   return previous(transcript);
  }
  if(result.error)return {found:0,notes:transcript,warning:result.error};
