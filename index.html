@@ -1051,6 +1051,33 @@ body.ec-carousel-moving #headerLogo{
  transform:none!important;
  transition:none!important;
 }
+/* Paleta Costeño tablet: colores de la vista conceptual sin alterar lógica. */
+#caja .card{background:linear-gradient(145deg,rgba(48,27,18,.94),rgba(29,16,12,.95))!important;border:2px solid #b68b54!important;box-shadow:inset 0 1px 2px #e6b57a44,0 7px 18px #0009!important;color:#fff4e5!important;border-radius:19px!important}
+#caja .card h2{color:#fff8e9!important;text-shadow:0 2px 3px #0007}
+#caja #products .product,#caja button.product{background:linear-gradient(155deg,#841b35,#520d20 80%)!important;border:2px solid #c99a5d!important;border-radius:17px!important;color:#fff!important;box-shadow:inset 0 2px 2px #ffffff20,0 5px 10px #0009!important;text-shadow:0 2px 2px #0009!important;min-height:94px}
+#caja #products .product:active{filter:brightness(1.17)}
+#caja #addCustomTacos{background:linear-gradient(160deg,#ffb321,#f37c00)!important;border:2px solid #ffce66!important;color:#fff!important;box-shadow:0 4px 10px #0007!important}
+#caja #charge{background:linear-gradient(165deg,#36e000,#078900 88%)!important;border:2px solid #8cff60!important;color:white!important;box-shadow:inset 0 2px 3px #ffffff42,0 5px 10px #0009!important;font-size:20px!important}
+#caja #chargePrint{background:linear-gradient(160deg,#169cdb,#00508b)!important;border:2px solid #60c9ff!important;color:#fff!important;box-shadow:inset 0 2px 3px #ffffff3b,0 5px 10px #0009!important}
+#caja #chargeSendAccountant{background:linear-gradient(160deg,#9137d4,#4d0e8d)!important;border:2px solid #ca8bff!important;color:#fff!important;box-shadow:inset 0 2px 3px #ffffff3b,0 5px 10px #0009!important}
+#caja #printTransferQr{background:linear-gradient(160deg,#00a6b6,#006473)!important;border:2px solid #61e2e8!important;border-radius:15px!important;color:#fff!important;box-shadow:0 4px 9px #0008!important}
+#caja #emergencyUndo{background:linear-gradient(160deg,#f0444b,#a30b1c)!important;border:2px solid #ff8a8c!important;border-radius:15px!important;color:#fff!important;box-shadow:0 4px 9px #0008!important}
+#caja .custom-quantity{border-top-color:#c99a5d88!important}
+#caja .line{border-bottom-color:#c99a5d66!important}
+#caja #total{color:#ffc83d!important;text-shadow:0 2px 4px #000b}
+#caja input:not([type=checkbox]):not([type=radio]):not([type=range]){background:#241814!important;border:2px solid #b9a79a!important;color:#fff!important}
+#caja input::placeholder{color:#b2a49c!important}
+#ecScreenIndicator .ec-screen-mark.active{background:#ffb900!important;box-shadow:0 0 8px #ffb90099!important}
+@media(min-width:900px){
+ main{max-width:1250px!important}
+ #caja{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
+ #caja>.emergency-row{grid-column:1/-1;grid-row:2;display:grid!important;grid-template-columns:1fr 1fr!important;gap:16px}
+ #caja>.card:not(#currentAccountCard){grid-column:1;grid-row:1;margin:10px 0!important}
+ #caja>#currentAccountCard{grid-column:2;grid-row:1;margin:10px 0!important}
+ #caja>#currentAccountCard.hidden{display:none!important}
+ #caja #products .product{min-height:160px!important;font-size:23px!important}
+ #caja .card{padding:20px!important}
+}
 /* Indicador de carrusel: dentro del WebView, justo encima de la barra Android. */
 #ecScreenIndicator{position:fixed;bottom:0;left:0;right:0;height:24px;z-index:8500;display:flex;align-items:center;justify-content:center;gap:9px;pointer-events:none;background:linear-gradient(0deg,#0c0b0b9c,transparent)}
 #ecScreenIndicator .ec-screen-mark{height:4px;width:27px;border-radius:8px;background:#ffffff60;transition:background .22s ease,width .22s ease,box-shadow .22s ease}
