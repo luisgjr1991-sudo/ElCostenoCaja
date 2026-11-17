@@ -530,9 +530,9 @@ function namedPlateAssignments(raw){
 }
 
 function incrementalSinglePlate(raw){
- const t=clean(raw).replace(/^(?:ahora|luego|despues|tambien|y)\s+/,"").trim();
- const head=t.match(new RegExp("^(?:(?:otro|otra|un|uno|una|el siguiente|uno mas|otro mas)\\s+)?platos?\\s+(?:mas\\s+)?(?:con|de|que lleve|que tenga)\\s+(.+)$"))
-  ||t.match(new RegExp("^(?:otro|otra|uno|un)\\s+(?:mas\\s+)?(?:con|de)\\s+(.+)$"));
+ const t=clean(raw).replace(/^(?:ahora|luego|despues|tambien|y)\s+/,"").trim().replace(/^(?:(?:agrega|agregame|anade|ponme|pon|suma|sumame)\s+)(?=(?:otro|otra|un|uno|una|el siguiente|cuarto|cuarta)\b)/,"");
+ const head=t.match(new RegExp("^(?:(?:otro|otra|un|uno|una|el siguiente|uno mas|otro mas|cuarto|cuarta)\\s+)?platos?\\s+(?:mas\\s+)?(?:con|de|que lleve|que tenga)\\s+(.+)$"))
+  ||t.match(new RegExp("^(?:otro|otra|uno|un|uno mas|otro mas|cuarto|cuarta|el cuarto|el cuarto plato)\\s+(?:mas\\s+)?(?:con|de)\\s+(.+)$"));
  const assorted=/^(?:(?:otro|otra|un|uno|una|el siguiente)\s+)?(?:plato\s+)?surtido(?:s)?$/.test(t);
  if(!head&&!assorted)return null;
  if(orderPlates.length>=50)return {error:"Máximo 50 platos."};
@@ -596,7 +596,7 @@ applySpokenOrder=function(transcript){
  if(/\b(?:carne asada|asada)\b/.test(heardStew)&&todayStew!=="Carne asada")return {found:0,notes:transcript,warning:"La Carne asada se ofrece los sábados. No cambié el pedido."};
  const result=parse(transcript);
  if(!result){
-  // A multi-plate dictation must never fall back to the old uniform/surtido parser.
+  // Never let legacy dictation add unassigned tacos for an intended new plate.\n  if(/\\b(?:otro|otra|uno mas|otro mas|cuarto|cuarta|plato)\\b/.test(clean(transcript))&&/\\b(?:con|de)\\b/.test(clean(transcript)))return {found:0,notes:transcript,warning:"No pude identificar el plato nuevo. No modifiqué los tacos ni los platos."};\n  // A multi-plate dictation must never fall back to the old uniform/surtido parser.
   const normalized=clean(transcript);
   if(new RegExp("\\b"+number+"\\s+platos?\\b").test(normalized))return {found:0,notes:transcript,warning:"No pude separar todos los platos. No cambié el pedido."};
   // Never let the old interpreter change only the aggregate count for a plate-specific edit.
