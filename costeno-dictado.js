@@ -500,7 +500,36 @@ function individuallyAssignedPlates(raw){
  if(body.slice(0,found[0].index).replace(/\b(?:y|el|en)\b/g," ").trim())return null;
  return {mode:"replace",plates};
 }
+
+function namedPlateAssignments(raw){
+ const t=clean(raw);
+ const head=t.match(new RegExp("\\b"+number+"\\s+platos?\\b"));
+ if(!head)return null;
+ const total=n(head[1]);if(total<2||total>50)return null;
+ const body=t.slice(head.index+head[0].length).trim();
+ const ord={primero:0,primer:0,segundo:1,tercero:2,tercer:2,cuarto:3,quinto:4,sexto:5,septimo:6,octavo:7,noveno:8,decimo:9,ultimo:total-1};
+ const word="(primero|primer|segundo|tercero|tercer|cuarto|quinto|sexto|septimo|octavo|noveno|decimo|ultimo)";
+ const marker=new RegExp("\\b(?:(?:y\\s+)?(?:el\\s+)?plato\\s+"+word+"|(?:y\\s+)?(?:el\\s+|al\\s+|en\\s+el\\s+)?"+word+"(?:\\s+plato)?)\\b","g");
+ const marks=[...body.matchAll(marker)];
+ if(!marks.length)return null;
+ const plates=Array.from({length:total},()=>null);
+ const itemRe=new RegExp("\\b"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"\\b","g");
+ const assorted=()=>Object.fromEntries(orderStewNames().map(k=>[k,1]));
+ for(let i=0;i<marks.length;i++){
+  const idx=ord[marks[i][1]||marks[i][2]];
+  if(idx<0||idx>=total||plates[idx])return null;
+  const part=body.slice(marks[i].index+marks[i][0].length,i+1<marks.length?marks[i+1].index:undefined).trim();
+  if(/^(?:(?:va|van|es|son|con|de|lleva|tiene)\s+)?surtidos?(?:\s+y)?$/.test(part)){plates[idx]=assorted();continue}
+  const items={};let residue=part;
+  for(const m of part.matchAll(itemRe)){const q=n(m[1]);if(q<1||q>100)return null;const k=keyOf(m[2]);items[k]=(items[k]||0)+q;residue=residue.replace(m[0]," ")}
+  if(!Object.keys(items).length||residue.replace(/\b(?:y|con|de|tacos?|va|van|lleva|lleve|tiene|es|son|ponle)\b/g," ").trim())return null;
+  plates[idx]=items;
+ }
+ if(plates.some(p=>!p))return null;
+ return {mode:"replace",plates};
+}
 function parse(raw){
+ const named=namedPlateAssignments(raw);if(named)return named;
  const individually=individuallyAssignedPlates(raw);if(individually)return individually;
  const remainder=enumeratedWithAssortedRemainder(raw);if(remainder)return remainder;
  const conversational=conversationalPlates(raw);if(conversational)return conversational;
