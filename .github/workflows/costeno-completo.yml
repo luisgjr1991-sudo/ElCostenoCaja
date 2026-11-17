@@ -32,6 +32,7 @@ jobs:
             cp "$asset" app/src/main/assets/
           done
           grep -q 'cardTypeDialog' app/src/main/assets/index.html
+          test -s app/src/main/assets/costeno-dictado.js
       - name: Compilar APK Android completa
         run: gradle assembleDebug --no-daemon
       - name: Verificar APK completa y tamaño antes de publicar
@@ -43,6 +44,7 @@ jobs:
           BYTES=$(stat -c%s "$APK")
           echo "Tamaño APK: $BYTES bytes ($(du -h "$APK" | cut -f1))" >> "$GITHUB_STEP_SUMMARY"
           unzip -l "$APK" | grep -q 'assets/index.html'
+          unzip -l "$APK" | grep -q 'assets/costeno-dictado.js'
           unzip -l "$APK" | grep -q 'classes.dex'
           if [ "$BYTES" -lt 8000000 ]; then
             echo "ERROR: APK inferior a 8 MB. No publicar versión reducida."
