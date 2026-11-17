@@ -267,7 +267,36 @@ function editCommand(raw){
  if(remove&&(orderPlates[ix].items[k]||0)<qty)return {error:"El plato no tiene suficientes tacos de "+k+"."};
  return {mode:"adjust",index:ix,key:k,delta:remove?-qty:qty};
 }
+
+function mixedAssorted(raw){
+ const t=clean(raw);
+ const head=t.match(new RegExp("\\b"+number+"\\s+platos?\\b"));
+ if(!head)return null;
+ const total=n(head[1]);if(total<2||total>50)return null;
+ const body=t.slice(head.index+head[0].length).trim();
+ const suffix=body.match(new RegExp("(?:y\\s+)?(?:los?\\s+)?(?:(?:ultimos?|restantes?|otros?|demas)\\s+)?"+number+"\\s+(?:platos?\\s+)?surtidos?\\s*$|(?:y\\s+)?(?:los?\\s+)?(?:ultimos?|restantes?|demas)\\s+"+number+"\\s+(?:platos?\\s+)?(?:van\\s+|son\\s+)?surtidos?\\s*$|(?:y\\s+)?(?:el\\s+)?resto\\s+(?:de\\s+los\\s+platos?\\s+)?(?:van\\s+|son\\s+)?surtidos?\\s*$"));
+ if(!suffix)return null;
+ const countMatch=suffix[0].match(new RegExp("\\b"+number+"\\b"));
+ const assortedCount=countMatch?n(countMatch[1]):null;
+ const count=assortedCount||total;
+ if(count<1||count>total)return null;
+ const leading=body.slice(0,suffix.index).trim().replace(/\s+y\s*$/,"");
+ const wanted=total-count;
+ const parts=leading.split(/\b(?:y\s+)?(?:en\s+)?(?:el\s+)?(?:primero|segundo|tercero|cuarto|quinto|en otro plato|otro plato)\b/).map(x=>x.trim()).filter(Boolean);
+ const itemRe=new RegExp("\\b"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"\\b","g");
+ const plates=[];
+ for(const part of parts){
+  const items={};
+  for(const m of part.matchAll(itemRe)){const q=n(m[1]);if(q<1||q>100)return null;const k=keyOf(m[2]);items[k]=(items[k]||0)+q}
+  if(Object.keys(items).length)plates.push(items);
+ }
+ if(plates.length!==wanted)return null;
+ const assorted=Object.fromEntries(orderStewNames().map(k=>[k,1]));
+ for(let i=0;i<count;i++)plates.push({...assorted});
+ return {mode:"replace",plates};
+}
 function parse(raw){
+ const mixed=mixedAssorted(raw);if(mixed)return mixed;
  const segmented=segmentedOrder(raw);if(segmented)return segmented;
  const distinct=distinctPlates(raw);if(distinct)return distinct;
  const edit=editCommand(raw);if(edit)return edit;
