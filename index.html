@@ -1049,7 +1049,7 @@ renderHeader();render();showOpeningWelcome();
 #ecTopBack[hidden],#ecTopGear[hidden]{display:none!important}
 header{padding-top:44px!important}
 </style>
-<div id="ecTopControls"><button id="ecTopBack" hidden aria-label="Regresar">←</button><button id="ecTopGear" aria-label="Ajustes">⚙️</button></div>
+<div id="ecTopControls"><button id="ecTopBack" hidden aria-label="Regresar">←</button></div>
 <script>
 (function(){
  const $=id=>document.getElementById(id);
@@ -1181,6 +1181,18 @@ main>section:not(#caja) .muted{color:#ddc9b4!important}
 .costeno-gallery-grid button.selected{border-color:#ffda75!important;box-shadow:0 0 0 2px #ffc44a,0 4px 10px #0008!important}
 .costeno-gallery-preview{width:54px;height:54px;filter:drop-shadow(0 4px 3px #0009)}
 .costeno-photo-icon{width:92px;height:84px;object-fit:contain;display:block;margin:0 auto 3px;filter:drop-shadow(0 4px 3px #0008)}.icon-picker-upload{padding:10px;text-align:center}.icon-picker-upload button{width:100%;background:linear-gradient(160deg,#009fae,#07566a)!important;color:#fff!important;border:2px solid #74dce4!important}
+/* Barra de cinco accesos de la maqueta de tableta. */
+#ecScreenIndicator{display:none!important}
+#ecTopGear{display:none!important}
+#costenoTabletNav{position:fixed;bottom:0;left:0;right:0;z-index:8600;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;padding:7px 6px calc(7px + env(safe-area-inset-bottom,0px));background:linear-gradient(0deg,#1a0e09f5,#2d180ff2);border-top:2px solid #bd8950;box-shadow:0 -4px 16px #0009}
+#costenoTabletNav button{min-width:0;min-height:61px;padding:5px 1px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:linear-gradient(150deg,#5a3626,#2d1b14)!important;border:2px solid #ad7c47!important;border-radius:12px!important;color:#fff!important;font-weight:700;font-size:clamp(10px,2.8vw,14px)!important;line-height:1.1;box-shadow:inset 0 1px 2px #ffffff2b,0 3px 6px #0008}
+#costenoTabletNav button.selected{border-color:#ffcf38!important;background:linear-gradient(155deg,#5e2e18,#2c160c)!important;box-shadow:0 0 0 1px #ffbd20,inset 0 1px 3px #fff3,0 3px 8px #000a!important}
+#costenoTabletNav svg{width:29px;height:29px;filter:drop-shadow(0 2px 2px #0009)}
+#costenoTabletNav button:active{filter:brightness(1.2)}
+body{padding-bottom:90px!important}
+#bottomNavigation{display:none!important}
+@media(min-width:800px){#costenoTabletNav{left:50%;transform:translateX(-50%);max-width:850px;gap:12px;background:#28170fe8;border:2px solid #9e764c;border-radius:18px 18px 0 0;padding:10px}#costenoTabletNav button{min-height:76px;font-size:16px!important}#costenoTabletNav svg{width:38px;height:38px}}
+@media print{#costenoTabletNav{display:none!important}}
 /* Indicador de carrusel: dentro del WebView, justo encima de la barra Android. */
 #ecScreenIndicator{position:fixed;bottom:0;left:0;right:0;height:24px;z-index:8500;display:flex;align-items:center;justify-content:center;gap:9px;pointer-events:none;background:linear-gradient(0deg,#0c0b0b9c,transparent)}
 #ecScreenIndicator .ec-screen-mark{height:4px;width:27px;border-radius:8px;background:#ffffff60;transition:background .22s ease,width .22s ease,box-shadow .22s ease}
@@ -1188,99 +1200,21 @@ main>section:not(#caja) .muted{color:#ddc9b4!important}
 body{padding-bottom:24px}
 @media print{#ecScreenIndicator{display:none!important}}
 </style>
-<div id="ecScreenIndicator" aria-label="Indicador de pantalla" role="status"></div>
+<nav id="costenoTabletNav" aria-label="Cambiar pantalla"><button type="button" data-tab="caja"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="49" r="24" fill="#25dc35" stroke="#0a6c1a" stroke-width="5"/><ellipse cx="41" cy="38" rx="8" ry="6" fill="#a8ff9c" opacity=".8"/></svg><span>Caja</span></button><button type="button" data-tab="pedidos"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M10 40 H62 V75 H10Z" fill="#f5f5f5" stroke="#3b3b3b" stroke-width="4"/><path d="M62 49 H78 L90 62 V75 H62Z" fill="#f5f5f5" stroke="#3b3b3b" stroke-width="4"/><circle cx="28" cy="77" r="10" fill="#393939" stroke="#eee" stroke-width="4"/><circle cx="74" cy="77" r="10" fill="#393939" stroke="#eee" stroke-width="4"/><path d="M16 49 H56 M16 57 H51" stroke="#858585" stroke-width="4"/></svg><span>Pedidos</span></button><button type="button" data-tab="historial"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="20" y="15" width="60" height="72" rx="7" fill="#f8f8f8" stroke="#797979" stroke-width="4"/><path d="M31 29 H69 M31 43 H69 M31 57 H64 M31 71 H56" stroke="#424242" stroke-width="5" stroke-linecap="round"/></svg><span>Historial</span></button><button type="button" data-tab="cortes"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="15" y="56" width="16" height="29" rx="3" fill="#fff"/><rect x="42" y="37" width="16" height="48" rx="3" fill="#fff"/><rect x="69" y="19" width="16" height="66" rx="3" fill="#fff"/></svg><span>Cortes</span></button><button type="button" data-tab="ajustes"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M44 11 H56 L60 23 L70 28 L81 23 L89 33 L82 44 L84 56 L94 64 L88 77 L76 75 L66 83 L64 95 H37 L34 82 L24 76 L12 78 L6 65 L16 55 L17 44 L10 33 L19 22 L31 28 L40 23Z" fill="#e8e8e8" stroke="#686868" stroke-width="4"/><circle cx="50" cy="52" r="16" fill="#6e6e6e" stroke="#fff" stroke-width="5"/></svg><span>Ajustes</span></button></nav>
 <script>
-/* Carrusel circular con deslizamiento real, sin fundidos ni cambios de layout. */
+/* Navegación directa: sin clones, gestos ni animaciones costosas. */
 (function(){
  const ids=['caja','pedidos','historial','cortes','ajustes'];
- const indicator=document.getElementById('ecScreenIndicator');
- const nodes=ids.map(()=>{const el=document.createElement('span');el.className='ec-screen-mark';indicator.appendChild(el);return el});
- const visible=()=>ids.find(id=>{const el=document.getElementById(id);return el&&!el.classList.contains('hidden')})||'caja';
- let current=visible(),start=null,locked=false,allowClick=false,release=0;
- function sync(){
-  current=visible();
-  nodes.forEach((el,i)=>{el.classList.toggle('active',ids[i]===current);el.setAttribute('aria-label',ids[i])});
- }
- function animateTo(target,dir){
-  if(locked||!ids.includes(target)||visible()===target)return;
-  const from=document.getElementById(visible());
-  const tab=document.querySelector('[data-tab="'+target+'"]');
-  if(!tab)return;
-  locked=true;
-  document.body.classList.add('ec-carousel-moving');
-  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const width=Math.max(280,document.documentElement.clientWidth);
-  const duration=235,offset=dir*width;
-  let outgoing=null,incoming=null,done=false;
-  const finish=()=>{
-   if(done)return;done=true;
-   if(outgoing)outgoing.cancel();
-   if(incoming)incoming.cancel();
-   clearTimeout(release);
-   locked=false;
-   document.body.classList.remove('ec-carousel-moving');
-   sync();
-  };
-  // El cambio de sección se hace una sola vez. Dos animaciones simultáneas
-  // evitan el tirón de esperar a que termine una para empezar la siguiente.
-  allowClick=true;
-  try{tab.click()}finally{allowClick=false}
-  const to=document.getElementById(target);
-  window.scrollTo(0,0);
-  sync();
-  if(reduced||!to||!from){finish();return}
-  // La sección anterior queda en una copia visual temporal para no
-  // alterar el estado ni los formularios de la aplicación.
-  const ghost=document.createElement('div');
-  ghost.setAttribute('aria-hidden','true');
-  ghost.style.cssText='position:fixed;left:0;right:0;top:0;bottom:24px;z-index:30;pointer-events:none;overflow:hidden;contain:layout paint';
-  const clone=from.cloneNode(true);
-  clone.removeAttribute('id');
-  clone.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
-  clone.classList.remove('hidden');
-  clone.style.cssText='position:absolute;left:0;right:0;top:0;margin:0;pointer-events:none;transform:translateZ(0)';
-  ghost.appendChild(clone);
-  document.body.appendChild(ghost);
-  const cleanup=()=>{ghost.remove();finish()};
-  outgoing=clone.animate([{transform:'translate3d(0,0,0)'},{transform:'translate3d('+offset+'px,0,0)'}],
-   {duration,easing:'cubic-bezier(.2,.72,.25,1)',fill:'forwards'});
-  incoming=to.animate([{transform:'translate3d('+(-offset)+'px,0,0)'},{transform:'translate3d(0,0,0)'}],
-   {duration,easing:'cubic-bezier(.2,.72,.25,1)'});
-  incoming.onfinish=cleanup;
-  incoming.oncancel=cleanup;
-  release=setTimeout(cleanup,duration+100);
- }
- // También animar los botones de navegación de Caja y Pedidos.
- document.addEventListener('click',e=>{
-  const tab=e.target.closest('[data-tab]');
-  if(!tab||allowClick||locked)return;
-  const target=tab.dataset.tab,from=visible();
-  if(!ids.includes(target)||from===target)return;
-  e.preventDefault();e.stopImmediatePropagation();
-  const a=ids.indexOf(from),b=ids.indexOf(target);
-  animateTo(target,b>a?-1:1);
- },true);
- document.addEventListener('touchstart',e=>{
-  if(e.touches.length!==1||locked)return;
-  const el=e.target,p=e.touches[0];
-  if(el.closest('input,textarea,select,button,[contenteditable],.order-plate,details,.qty-entry,#appDrawer,#ecTopControls,[role="slider"],.no-swipe'))return;
-  start={x:p.clientX,y:p.clientY,time:Date.now(),page:visible()};
- },{passive:true});
- document.addEventListener('touchend',e=>{
-  if(!start||locked)return;
-  const p=e.changedTouches[0],dx=p.clientX-start.x,dy=p.clientY-start.y,from=start;start=null;
-  if(Math.abs(dx)<44||Math.abs(dx)<Math.abs(dy)*1.15||Date.now()-from.time>1300)return;
-  if(from.page!==visible())return;
-  const index=ids.indexOf(from.page),direction=dx<0?1:-1;
-  const next=ids[(index+direction+ids.length)%ids.length];
-  animateTo(next,direction===1?-1:1);
- },{passive:true});
- document.addEventListener('touchcancel',()=>{start=null},{passive:true});
- // El resto de accesos (ajustes, regresar, papelera) también actualizan la rayita.
- document.addEventListener('click',()=>{setTimeout(sync,0);setTimeout(sync,400)},false);
- const observer=new MutationObserver(()=>{if(!locked)sync()});
+ const nav=document.getElementById('costenoTabletNav');
+ if(!nav)return;
+ const active=()=>ids.find(id=>{const el=document.getElementById(id);return el&&!el.classList.contains('hidden')})||'caja';
+ const update=()=>nav.querySelectorAll('[data-tab]').forEach(b=>{
+  const selected=b.dataset.tab===active();b.classList.toggle('selected',selected);b.setAttribute('aria-current',selected?'page':'false');
+ });
+ nav.addEventListener('click',()=>setTimeout(update,0));
+ const observer=new MutationObserver(update);
  ids.forEach(id=>{const el=document.getElementById(id);if(el)observer.observe(el,{attributes:true,attributeFilter:['class']})});
- sync();
+ update();
 })();
 </script>
 <style>
