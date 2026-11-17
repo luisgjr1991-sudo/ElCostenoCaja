@@ -1071,7 +1071,7 @@ body{padding-bottom:24px}
   locked=true;
   const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const width=Math.max(280,document.documentElement.clientWidth);
-  const offset=(dir<0?1:-1)*width;
+  const offset=dir*width;
   const duration=320;
   const switchPage=()=>{
    allowClick=true;
