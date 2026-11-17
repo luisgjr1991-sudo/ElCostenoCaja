@@ -528,7 +528,27 @@ function namedPlateAssignments(raw){
  if(plates.some(p=>!p))return null;
  return {mode:"replace",plates};
 }
+
+function incrementalSinglePlate(raw){
+ const t=clean(raw).replace(/^(?:ahora|luego|despues|tambien|y)\s+/,"").trim();
+ const head=t.match(new RegExp("^(?:(?:otro|otra|un|uno|una|el siguiente|uno mas|otro mas)\\s+)?platos?\\s+(?:mas\\s+)?(?:con|de|que lleve|que tenga)\\s+(.+)$"))
+  ||t.match(new RegExp("^(?:otro|otra|uno|un)\\s+(?:mas\\s+)?(?:con|de)\\s+(.+)$"));
+ const assorted=/^(?:(?:otro|otra|un|uno|una|el siguiente)\s+)?(?:plato\s+)?surtido(?:s)?$/.test(t);
+ if(!head&&!assorted)return null;
+ if(orderPlates.length>=50)return {error:"Máximo 50 platos."};
+ if(assorted)return {mode:"append",plates:[Object.fromEntries(orderStewNames().map(k=>[k,1]))]};
+ const part=head[1].trim(),items={};
+ const itemRe=new RegExp("\\b"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"\\b","g");
+ let residue=part;
+ for(const m of part.matchAll(itemRe)){
+  const q=n(m[1]);if(q<1||q>100)return {error:"Cantidad de tacos fuera de rango."};
+  const k=keyOf(m[2]);items[k]=(items[k]||0)+q;residue=residue.replace(m[0]," ");
+ }
+ if(!Object.keys(items).length||residue.replace(/\b(?:y|con|de|tacos?|tambien)\b/g," ").trim())return null;
+ return {mode:"append",plates:[items]};
+}
 function parse(raw){
+ const incremental=incrementalSinglePlate(raw);if(incremental)return incremental;
  const named=namedPlateAssignments(raw);if(named)return named;
  const individually=individuallyAssignedPlates(raw);if(individually)return individually;
  const remainder=enumeratedWithAssortedRemainder(raw);if(remainder)return remainder;
