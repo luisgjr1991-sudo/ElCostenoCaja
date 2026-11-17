@@ -257,8 +257,33 @@ function openProductIconPicker(productId){
  const choose=icon=>{if(target){target.icon=icon;save('ec_products',products);render()}else{pendingNewProductIcon=icon;$('newProductIcon').textContent=(typeof icon==='string'&&icon.startsWith('data:image/'))?'🖼️ Imagen elegida':(icon||'◻️')+' Elegir icono'}close()};
  const cats=backdrop.querySelector('.icon-picker-cats'),grid=backdrop.querySelector('.icon-picker-grid');
  const selected=target?target.icon:pendingNewProductIcon;
- const show=category=>{grid.innerHTML='';productIconCategories[category].forEach(icon=>{const b=document.createElement('button');b.type='button';b.innerHTML=productIconMarkup(icon);b.setAttribute('aria-label','Elegir '+icon);if(icon===selected)b.classList.add('selected');b.onclick=()=>choose(icon);grid.appendChild(b)})};
- Object.keys(productIconCategories).forEach((category,i)=>{const b=document.createElement('button');b.type='button';b.textContent=category;b.onclick=()=>show(category);cats.appendChild(b);if(i===0)show(category)});
+ // Leer los paquetes persistidos directamente cada vez que se abre el selector.
+ // Evita depender de que otro script actualice el catálogo en memoria.
+ const catalog={...productIconCategories};
+ Object.keys(catalog).filter(k=>k.startsWith('Paquete: ')).forEach(k=>delete catalog[k]);
+ try{
+  const packs=JSON.parse(localStorage.getItem('ec_icon_packs')||'[]');
+  if(Array.isArray(packs))packs.forEach(pack=>{
+   if(!pack||!pack.products||typeof pack.products!=='object')return;
+   const entries=Object.entries(pack.products).filter(([name,icon])=>typeof icon==='string'&&(icon.length<160000&&/^data:image\\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(icon)||icon.length<=8));
+   if(entries.length)catalog['Paquete: '+String(pack.name||'Sin nombre')]=entries;
+  });
+ }catch(err){console.warn('No se pudo leer la biblioteca',err)}
+ const show=category=>{
+  grid.replaceChildren();
+  (catalog[category]||[]).forEach(entry=>{
+   const name=Array.isArray(entry)?entry[0]:'',icon=Array.isArray(entry)?entry[1]:entry;
+   const b=document.createElement('button');b.type='button';b.innerHTML=productIconMarkup(icon);
+   b.setAttribute('aria-label','Elegir '+(name||'icono'));b.title=name||'Icono';
+   if(icon===selected)b.classList.add('selected');
+   b.onclick=()=>choose(icon);grid.appendChild(b);
+  });
+ };
+ Object.keys(catalog).forEach((category,i)=>{
+  const b=document.createElement('button');b.type='button';b.textContent=category;
+  b.onclick=()=>{cats.querySelectorAll('button').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');show(category)};
+  cats.appendChild(b);if(i===0)b.click();
+ });
  const file=backdrop.querySelector('[data-icon-file]');
  backdrop.querySelector('[data-icon-upload]').onclick=()=>file.click();
  file.onchange=()=>{
