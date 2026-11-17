@@ -335,7 +335,7 @@ window.orderNativeSpeechResult=(status,value)=>{
  if(status==='ok'&&field&&$(field)){
   let text=String(value||'').trim();
   if(field==='orderPhone')text=text.replace(/[^0-9+]/g,'');
-  if(text){if(field==='orderNotes'){$('orderVoiceStatus').textContent='Escuché: «'+text+'»';}let recognized=field==='orderNotes'?applySpokenOrder(text):{found:0,notes:text};if(recognized.warning)$('orderVoiceStatus').textContent=recognized.warning;if(recognized.notes)$(field).value=($(field).value.trim()&&field!=='orderPhone'?$(field).value.trim()+' ':'')+recognized.notes;$('orderVoiceStatus').textContent=(field==='orderNotes'?'Escuché: «'+text+'». ':'')+(recognized.warning||recognized.message||(recognized.found?'Pedido actualizado. Revisa los platos antes de imprimir.':'Dictado guardado en '+orderVoiceNames[field]+'. Puedes corregirlo o volver a dictar.'));}
+  if(text){if(field==='orderNotes'){$('orderVoiceStatus').textContent='Escuché: «'+text+'»';}let recognized=field==='orderNotes'?applySpokenOrder(text):{found:0,notes:text};if(recognized.warning)$('orderVoiceStatus').textContent=recognized.warning;if(recognized.notes&&field!=='orderNotes')$(field).value=($(field).value.trim()&&field!=='orderPhone'?$(field).value.trim()+' ':'')+recognized.notes;$('orderVoiceStatus').textContent=(field==='orderNotes'?'Escuché: «'+text+'». ':'')+(recognized.warning||recognized.message||(recognized.found?'Pedido actualizado. Revisa los platos antes de imprimir.':'Dictado guardado en '+orderVoiceNames[field]+'. Puedes corregirlo o volver a dictar.'));}
   else $('orderVoiceStatus').textContent='No se reconoció contenido. Intenta nuevamente.';
  }else $('orderVoiceStatus').textContent=value||'Dictado cancelado. Puedes intentarlo otra vez.';
 };
@@ -367,7 +367,7 @@ function interpretOrderNotes(){
  const el=$('orderNotes'),raw=el.value.trim();
  if(!raw||raw===orderLastInterpreted)return;
  const result=applySpokenOrder(raw);
- if(result.found){orderLastInterpreted=raw;if(result.notes)el.value=result.notes;$('orderVoiceStatus').textContent=result.message||'Pedido interpretado: '+result.found+' tacos o productos. Revisa los platos antes de imprimir.'}
+ if(result.found){orderLastInterpreted=raw;el.value='';orderLastInterpreted='';$('orderVoiceStatus').textContent=result.message||'Pedido interpretado: '+result.found+' tacos o productos. Revisa los platos antes de imprimir.'}
  else $('orderVoiceStatus').textContent=result.warning||'No se identificaron cantidades. Usa frases como: cinco platos, uno con carne, otro con machaca y frijol, otro con frijol y chicharrón, otros dos surtidos.';
 }
 $('orderInterpret').onclick=interpretOrderNotes;
