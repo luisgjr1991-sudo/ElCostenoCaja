@@ -40,11 +40,17 @@ public class MainActivity extends Activity {
     audioThread.start(); audioHandler = new Handler(audioThread.getLooper());
     web = new WebView(this);
     web.getSettings().setJavaScriptEnabled(true);
+    // index.html and its local dictation script are bundled under android_asset.
+    web.getSettings().setAllowFileAccess(true);
     web.getSettings().setDomStorageEnabled(true);
     web.addJavascriptInterface(new PrinterBridge(), "AndroidPrinter");
     web.addJavascriptInterface(new SpeechBridge(), "AndroidSpeech");
     web.addJavascriptInterface(new CashAudioBridge(), "AndroidCashAudio");
     web.setWebChromeClient(new WebChromeClient() {
+      @Override public boolean onConsoleMessage(ConsoleMessage msg) {
+        android.util.Log.e("CostenoWeb", msg.message()+" ("+msg.sourceId()+":"+msg.lineNumber()+")");
+        return true;
+      }
       @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
         if (fileChooserCallback != null) fileChooserCallback.onReceiveValue(null);
         fileChooserCallback = callback;
