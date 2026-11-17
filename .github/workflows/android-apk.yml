@@ -1,12 +1,5 @@
 name: APK PRINCIPAL El Costeño (android)
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'index.html'
-      - 'android/**'
-      - 'scripts/download_cash_sounds.py'
-      - '.github/workflows/android-apk.yml'
   workflow_dispatch:
 jobs:
   build:
