@@ -531,7 +531,9 @@ function namedPlateAssignments(raw){
 
 function incrementalSinglePlate(raw){
  const t=clean(raw).replace(/^(?:ahora|luego|despues|tambien|y)\s+/,"").trim().replace(/^(?:(?:agrega|agregame|anade|ponme|pon|suma|sumame)\s+)(?=(?:otro|otra|un|uno|una|el siguiente|cuarto|cuarta)\b)/,"");
- const head=t.match(new RegExp("^(?:(?:otro|otra|un|uno|una|el siguiente|uno mas|otro mas|cuarto|cuarta)\\s+)?platos?\\s+(?:mas\\s+)?(?:con|de|que lleve|que tenga)\\s+(.+)$"))
+ const ordinal=t.match(/^(?:(?:un|el)\s+)?(segundo|tercero|cuarto|quinto|sexto|septimo|octavo|noveno|decimo)\s+plato\b/);
+ if(ordinal){const idx={segundo:1,tercero:2,cuarto:3,quinto:4,sexto:5,septimo:6,octavo:7,noveno:8,decimo:9}[ordinal[1]];if(idx!==orderPlates.length)return {error:"Para agregar ese plato deben existir exactamente "+idx+" platos anteriores."}}
+ const head=t.match(new RegExp("^(?:(?:otro|otra|un|uno|una|el siguiente|uno mas|otro mas|cuarto|cuarta|un cuarto|el cuarto|un tercero|el tercero|un segundo|el segundo|un quinto|el quinto)\\s+)?platos?\\s+(?:mas\\s+)?(?:con|de|que lleve|que tenga)\\s+(.+)$"))
   ||t.match(new RegExp("^(?:otro|otra|uno|un|uno mas|otro mas|cuarto|cuarta|el cuarto|el cuarto plato)\\s+(?:mas\\s+)?(?:con|de)\\s+(.+)$"));
  const assorted=/^(?:(?:otro|otra|un|uno|una|el siguiente)\s+)?(?:plato\s+)?surtido(?:s)?$/.test(t);
  if(!head&&!assorted)return null;
