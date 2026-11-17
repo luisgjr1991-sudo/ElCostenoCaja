@@ -218,6 +218,16 @@ const illustratedIcons={
  '🎨 Refresco vaso':'<path d="M25 26 H75 L66 89 H34Z" fill="#d92930" stroke="#f5dddd" stroke-width="4"/><path d="M50 29 L64 6" stroke="#fff" stroke-width="5"/><path d="M36 57 Q50 43 64 57" stroke="#fff" stroke-width="5" fill="none"/>',
  '🎨 Agua':'<path d="M43 9 H57 V22 L63 32 V84 Q63 91 50 91 Q37 91 37 84 V32 L43 22Z" fill="#59bde6" stroke="#d3f5ff" stroke-width="4"/><rect x="38" y="46" width="24" height="24" rx="3" fill="#f0ffff"/>'
 };
+// Galería gráfica ampliada. Dibujos SVG locales, sin conexión ni dependencias.
+const costenoExtraArt={
+ '🎨 Taco dorado':'<ellipse cx="50" cy="84" rx="39" ry="6" fill="#170b05" opacity=".3"/><path d="M9 73 Q50 -3 91 73 Q50 93 9 73Z" fill="#f7c64d" stroke="#b36a20" stroke-width="4"/><path d="M17 66 Q50 27 83 66" fill="none" stroke="#65c13f" stroke-width="13"/><path d="M20 64 Q50 39 80 64" fill="none" stroke="#ad4e23" stroke-width="9"/><path d="M17 72 Q50 60 83 72" fill="none" stroke="#ffe58b" stroke-width="6"/>',
+ '🎨 Taco gourmet':'<ellipse cx="50" cy="86" rx="38" ry="5" fill="#170b05" opacity=".35"/><path d="M10 72 Q48 11 91 72 Q80 91 50 88 Q21 89 10 72Z" fill="#e8a837" stroke="#a45b20" stroke-width="4"/><path d="M17 66 Q49 27 83 66" fill="none" stroke="#4aa93e" stroke-width="15"/><path d="M21 61 L34 52 L43 59 L53 48 L66 58 L77 52" fill="none" stroke="#e6472b" stroke-width="8"/><path d="M15 75 Q50 63 85 75" fill="none" stroke="#ffe48b" stroke-width="7"/>',
+ '🎨 Cola con hielo':'<path d="M20 22 H80 L69 88 Q50 96 31 88Z" fill="#fafafa" stroke="#c7d0d1" stroke-width="4"/><path d="M26 31 H74 L65 84 Q50 89 35 84Z" fill="#54251a"/><path d="M34 40 L43 33 L50 43 L41 52Z M51 52 L61 44 L68 55 L57 63Z M40 65 L49 57 L56 69 L46 77Z" fill="#c2a48d"/><path d="M20 23 Q50 16 80 23" stroke="#fff" stroke-width="8"/><path d="M53 24 L72 4" stroke="#fff" stroke-width="6"/>',
+ '🎨 Cola botella 3D':'<path d="M42 8 H58 V23 Q65 30 65 39 L62 84 Q60 93 50 93 Q40 93 38 84 L35 39 Q35 30 42 23Z" fill="#63241d" stroke="#f7c4a8" stroke-width="4"/><path d="M38 45 H62 V71 H38Z" fill="#d52b2d"/><path d="M42 58 Q50 46 58 58" stroke="#fff" stroke-width="5" fill="none"/><path d="M43 14 H57 M43 21 H57" stroke="#eee" stroke-width="4"/><path d="M42 31 L42 82" stroke="#fff" stroke-width="3" opacity=".6"/>',
+ '🎨 Quesadilla dorada':'<path d="M9 75 Q50 2 91 75 Q50 96 9 75Z" fill="#e8ac3e" stroke="#9d5b23" stroke-width="4"/><path d="M20 72 Q50 36 80 72" fill="none" stroke="#fff2a0" stroke-width="11"/><path d="M27 74 L38 67 L49 76 L60 66 L72 74" fill="none" stroke="#e9f6a8" stroke-width="6"/>',
+ '🎨 Torta especial':'<path d="M10 47 Q13 10 50 15 Q87 10 90 47Z" fill="#eab264" stroke="#9b5528" stroke-width="4"/><path d="M12 53 H88" stroke="#6bc444" stroke-width="13"/><path d="M12 60 H88" stroke="#b24c28" stroke-width="10"/><path d="M12 69 Q50 91 88 69 Q76 94 50 94 Q24 94 12 69Z" fill="#dca059" stroke="#9b5528" stroke-width="4"/>'
+};
+Object.assign(illustratedIcons,costenoExtraArt);
 function productIconMarkup(value){
  if(Object.prototype.hasOwnProperty.call(illustratedIcons,value)){
   return '<svg class="costeno-illustration" viewBox="0 0 100 100" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">'+illustratedIcons[value]+'</svg>';
@@ -225,7 +235,7 @@ function productIconMarkup(value){
  return esc(value||'');
 }
 const productIconCategories={
- 'Ilustrados':['🎨 Taco','🎨 Torta','🎨 Quesadilla','🎨 Coca botella','🎨 Coca lata','🎨 Refresco vaso','🎨 Agua'],
+ 'Ilustrados':['🎨 Taco','🎨 Taco dorado','🎨 Taco gourmet','🎨 Torta','🎨 Torta especial','🎨 Quesadilla','🎨 Quesadilla dorada','🎨 Coca botella','🎨 Cola botella 3D','🎨 Coca lata','🎨 Refresco vaso','🎨 Cola con hielo','🎨 Agua'],
  'Comida':['🌮','🍔','🍟','🍕','🌭','🥪','🥙','🌯','🍗','🍖','🥩','🍳','🥗','🍜','🍝','🍣','🍤','🥟','🍚','🫔','🧀','🥐','🍞','🥞'],
  'Bebidas':['🥤','☕','🧋','🧃','🥛','🍵','🫖','🍹','🍶','🧊','🍺','🍷'],
  'Postres':['🍰','🎂','🧁','🍩','🍪','🍫','🍬','🍭','🍦','🍨','🍮','🥧'],
@@ -315,14 +325,15 @@ function renderTrash(){$('trashCount').textContent=deletedSales.length?' '+delet
 $('restoreTicketLogo').onclick=()=>{if(!confirm('¿Restaurar el logo original blanco y negro para los tickets?'))return;persistRemove('ec_logo');logo='';loadDefaultTicketLogo();alert('Logo original restaurado.');};
 
 // Menú visual de ajustes: conserva los controles originales y sus eventos.
-const settingsGroups=[['🎨','Personalizar',[3,4,11]],['🖨️','Impresora',[6,11]],['🖼️','Logotipos',[7,8,9]],['🧾','Tickets',[9]],['🏷️','Productos',[5]],['📲','WhatsApp',[1]],['🏛️','Datos fiscales',[0]],['🔊','Sonidos',[2]],['💾','Respaldos',[9]],['🎩','Animación',[10]]];
+const settingsGroups=[['🎨','Personalizar',[3,4,11,12]],['🖨️','Impresora',[6,11]],['🖼️','Logotipos',[7,8,9]],['🧾','Tickets',[9]],['🏷️','Productos',[5]],['📲','WhatsApp',[1]],['🏛️','Datos fiscales',[0]],['🔊','Sonidos',[2]],['💾','Respaldos',[9]],['🎩','Animación',[10]]];
 // Mantener el orden histórico de las tarjetas: la nueva animación va al final.
 $('settingsOriginal').appendChild($('logoAnimationSettings'));
 $('settingsOriginal').insertAdjacentHTML('beforeend',"<div class=\"card\" id=\"transferBankSettings\"><h2>💙 Transferencias albo</h2><p class=\"muted\">Los datos se guardan únicamente en este dispositivo. El QR no incluye importe ni realiza un cobro.</p><label for=\"transferClabe\">CLABE de 18 dígitos</label><input id=\"transferClabe\" type=\"text\" inputmode=\"numeric\" maxlength=\"18\" autocomplete=\"off\" placeholder=\"18 dígitos\"><label for=\"transferBeneficiary\">Beneficiario</label><input id=\"transferBeneficiary\" type=\"text\" autocomplete=\"off\" placeholder=\"Nombre del titular\"><button id=\"saveTransferBank\" type=\"button\" class=\"primary full\">Guardar datos para QR</button><button id=\"previewTransferQr\" type=\"button\" class=\"full\">👁️ Vista previa ticket QR</button><div id=\"transferQrPreview\" class=\"hidden\" style=\"margin-top:12px;background:white;color:black;padding:12px;text-align:center;font-family:monospace\"><strong>EL COSTEÑO</strong><div>TRANSFERENCIA SPEI</div><div>Banco: albo</div><img id=\"transferQrPreviewImage\" style=\"width:210px;height:210px;display:block;margin:8px auto\" alt=\"QR\"><div>Escanea para ver los datos</div><p>Beneficiario:</p><div id=\"transferQrPreviewName\" style=\"overflow-wrap:anywhere\"></div><p>CLABE:</p><strong id=\"transferQrPreviewClabe\"></strong><p>Gracias por tu compra!</p><button id=\"closeTransferQrPreview\" type=\"button\">Cerrar</button></div></div>");
 $('settingsOriginal').insertAdjacentHTML('beforeend', '<div class="card" id="visualStyleSettings"><h2>🖌️ Estilo visual</h2><label for="costenoIconStyle">Estilo de iconos</label><select id="costenoIconStyle"><option value="color">Ilustrados a color</option><option value="line">Líneas modernas</option><option value="classic">Clásicos</option></select><label for="costenoFontStyle">Tipo de letra</label><select id="costenoFontStyle"><option value="system">Original del sistema</option><option value="rounded">Redondeada</option><option value="classic">Clásica</option><option value="bold">Moderna y gruesa</option></select><p class="muted">Cambia la apariencia sin modificar precios, productos, tickets ni cobros. Los dibujos ilustrados se eligen desde Productos → Icono.</p></div>');
+$('settingsOriginal').insertAdjacentHTML('beforeend','<div class="card" id="costenoIconGallerySettings"><h2>🖼️ Galería de iconos</h2><p class="muted">Elige dibujos gráficos para los botones de Caja. Toca una miniatura para aplicarla; se conserva al cerrar la aplicación.</p><div id="costenoIconGallery"></div><button type="button" id="costenoResetIcons" class="full">Restaurar iconos originales</button><p class="muted">Para elegir ilustraciones de tacos, refrescos, tortas o quesadillas entra a Productos → Icono.</p></div>');
 const originalSettingsCards=Array.from($('settingsOriginal').children);const cardSlots=originalSettingsCards.map(()=>document.createComment('posición de ajuste'));
 // Los controles permanecen en el DOM para que sus eventos se inicialicen correctamente.
-const settingsNames=['Datos fiscales','WhatsApp','Sonidos','Temas','Fondo','Productos','Impresora','Logo superior','Icono','Ticket y respaldo','Animación','Estilo visual'];
+const settingsNames=['Datos fiscales','WhatsApp','Sonidos','Temas','Fondo','Productos','Impresora','Logo superior','Icono','Ticket y respaldo','Animación','Estilo visual','Galería de iconos'];
 $('settingsTiles').innerHTML=settingsGroups.map((g,i)=>'<button type="button" class="settings-tile" data-settings-group="'+i+'"><span class="tile-icon">'+g[0]+'</span><span>'+g[1]+'</span></button>').join('')+'<button type="button" class="settings-tile" data-tab="historial"><span class="tile-icon">🕘</span><span>Historial de ventas</span></button><button type="button" class="settings-tile" data-tab="cortes"><span class="tile-icon">📊</span><span>Corte de ventas</span></button>';
 function showSettingsGroup(index){let group=settingsGroups[index];if(!group)return;const content=$('settingsDetailContent');backToSettings();content.replaceChildren();group[2].forEach(i=>content.appendChild(originalSettingsCards[i]));$('settingsDetailTitle').textContent=group[0]+' '+group[1];$('settingsOriginal').classList.add('hidden');$('settingsTiles').parentElement.classList.add('hidden');$('settingsDetail').classList.remove('hidden');}
 function backToSettings(){originalSettingsCards.forEach(card=>$('settingsOriginal').appendChild(card));$('settingsDetail').classList.add('hidden');$('settingsTiles').parentElement.classList.remove('hidden');}
@@ -1147,6 +1158,12 @@ main>section:not(#caja) .muted{color:#ddc9b4!important}
 #settingsTiles .settings-tile{background:linear-gradient(155deg,#603b28,#281811)!important;border:1.5px solid #b68b54!important;border-radius:15px!important;box-shadow:inset 0 1px 2px #ffffff2b,0 4px 10px #0007!important;color:#fff4e5!important}
 #settingsTiles .settings-tile .tile-icon{filter:drop-shadow(0 3px 3px #0008)}
 @media print{main>section:not(#caja) .card{box-shadow:none!important}}
+/* Galería de iconos gráficos intercambiables. */
+.costeno-gallery-group{margin:12px 0 18px}
+.costeno-gallery-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.costeno-gallery-grid button{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;padding:10px 3px!important;font-size:12px!important;background:linear-gradient(145deg,#794122,#392018)!important;color:#fff!important;border:2px solid #bb8a4f!important}
+.costeno-gallery-grid button.selected{border-color:#ffda75!important;box-shadow:0 0 0 2px #ffc44a,0 4px 10px #0008!important}
+.costeno-gallery-preview{width:54px;height:54px;filter:drop-shadow(0 4px 3px #0009)}
 /* Indicador de carrusel: dentro del WebView, justo encima de la barra Android. */
 #ecScreenIndicator{position:fixed;bottom:0;left:0;right:0;height:24px;z-index:8500;display:flex;align-items:center;justify-content:center;gap:9px;pointer-events:none;background:linear-gradient(0deg,#0c0b0b9c,transparent)}
 #ecScreenIndicator .ec-screen-mark{height:4px;width:27px;border-radius:8px;background:#ffffff60;transition:background .22s ease,width .22s ease,box-shadow .22s ease}
@@ -1276,14 +1293,49 @@ body[data-costeno-font-style="bold"] main,body[data-costeno-font-style="bold"] b
 </script>
 <script>
 (function(){
- const entries=[['emergencyUndo','trash','Borrar último cobro'],['printTransferQr','qr','Imprimir QR transferencia']];
- entries.forEach(([id,art,label])=>{
-  const btn=document.getElementById(id);
-  if(!btn||typeof costenoSvg!=='function')return;
-  btn.replaceChildren();
-  btn.insertAdjacentHTML('afterbegin',costenoSvg(art,'costeno-action-art'));
-  const span=document.createElement('span');span.textContent=label;btn.appendChild(span);
- });
+ const variants={
+  trash:{
+   'Tableta':'<path d="M23 28 H77 M36 28 V17 H64 V28 M29 37 L34 87 H66 L71 37Z" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><path d="M43 48 V76 M57 48 V76" stroke="#fff" stroke-width="6" stroke-linecap="round"/>',
+   'Relieve':'<path d="M23 31 H77 M35 31 V19 H65 V31 M30 38 L35 87 H65 L70 38Z" fill="#f5f5f5" stroke="#c9d0d5" stroke-width="4"/><path d="M43 47 V75 M57 47 V75" stroke="#aeb7bf" stroke-width="6" stroke-linecap="round"/>',
+   'Moderno':'<rect x="31" y="34" width="38" height="51" rx="7" fill="none" stroke="#fff" stroke-width="7"/><path d="M24 27 H76 M41 18 H59 M43 45 V73 M57 45 V73" stroke="#fff" stroke-width="6" stroke-linecap="round"/>'
+  },
+  qr:{
+   'Tableta':'<rect x="12" y="12" width="28" height="28" rx="2" fill="none" stroke="#fff" stroke-width="6"/><rect x="60" y="12" width="28" height="28" rx="2" fill="none" stroke="#fff" stroke-width="6"/><rect x="12" y="60" width="28" height="28" rx="2" fill="none" stroke="#fff" stroke-width="6"/><path d="M22 22 H30 V30 H22Z M70 22 H78 V30 H70Z M22 70 H30 V78 H22Z M51 50 H61 V60 H51Z M71 51 H82 V61 H71Z M52 72 H61 V83 H52Z M72 73 H82 V83 H72Z M45 16 H52 V28 H45 M45 37 H54 V44 H45" fill="#fff"/>',
+   'Relieve':'<rect x="10" y="10" width="32" height="32" rx="5" fill="#fff"/><rect x="58" y="10" width="32" height="32" rx="5" fill="#fff"/><rect x="10" y="58" width="32" height="32" rx="5" fill="#fff"/><path d="M20 20 H32 V32 H20Z M68 20 H80 V32 H68Z M20 68 H32 V80 H20Z" fill="#08717c"/><path d="M50 51 H61 V62 H50Z M68 51 H83 V61 H68Z M50 69 H60 V83 H50Z M69 69 H82 V82 H69Z" fill="#fff"/>',
+   'Moderno':'<path d="M13 38 V13 H38 M62 13 H87 V38 M13 62 V87 H38 M62 87 H87 V62" stroke="#fff" stroke-width="7" stroke-linecap="round" fill="none"/><path d="M29 29 H42 V42 H29Z M58 29 H71 V42 H58Z M29 58 H42 V71 H29Z M56 56 H68 V68 H56Z M74 74 H82 V82 H74Z" fill="#fff"/>'
+  }
+ };
+ const options=[['emergencyUndo','trash','Borrar último cobro'],['printTransferQr','qr','Imprimir QR transferencia']];
+ const read=(key,fallback)=>{try{return localStorage.getItem(key)||fallback}catch(e){return fallback}};
+ const save=(key,val)=>{try{localStorage.setItem(key,val)}catch(e){}};
+ const svg=(type,style,cls)=>'<svg class="'+cls+'" viewBox="0 0 100 100" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">'+variants[type][style]+'</svg>';
+ function apply(){
+  options.forEach(([id,type,label])=>{
+   const btn=document.getElementById(id);if(!btn)return;
+   const style=read('ec_gallery_'+type,'Tableta');
+   btn.replaceChildren();
+   btn.insertAdjacentHTML('afterbegin',svg(type,variants[type][style]?style:'Tableta','costeno-action-art'));
+   const span=document.createElement('span');span.textContent=label;btn.appendChild(span);
+  });
+  document.querySelectorAll('[data-gallery-icon]').forEach(btn=>btn.classList.toggle('selected',read('ec_gallery_'+btn.dataset.galleryIcon,'Tableta')===btn.dataset.galleryStyle));
+ }
+ const gallery=document.getElementById('costenoIconGallery');
+ if(gallery){
+  options.forEach(([id,type,label])=>{
+   const group=document.createElement('div');group.className='costeno-gallery-group';
+   const title=document.createElement('h3');title.textContent=label;group.appendChild(title);
+   const grid=document.createElement('div');grid.className='costeno-gallery-grid';
+   Object.keys(variants[type]).forEach(style=>{
+    const btn=document.createElement('button');btn.type='button';btn.dataset.galleryIcon=type;btn.dataset.galleryStyle=style;
+    btn.insertAdjacentHTML('afterbegin',svg(type,style,'costeno-gallery-preview'));
+    const caption=document.createElement('span');caption.textContent=style;btn.appendChild(caption);
+    btn.onclick=()=>{save('ec_gallery_'+type,style);apply()};grid.appendChild(btn);
+   });
+   group.appendChild(grid);gallery.appendChild(group);
+  });
+  document.getElementById('costenoResetIcons').onclick=()=>{options.forEach(([,type])=>save('ec_gallery_'+type,'Tableta'));apply()};
+ }
+ apply();
 })();
 </script>
 </body></html>
