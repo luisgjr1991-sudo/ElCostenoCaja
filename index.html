@@ -1080,30 +1080,45 @@ body{padding-bottom:24px}
   document.body.classList.add('ec-carousel-moving');
   const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const width=Math.max(280,document.documentElement.clientWidth);
-  const offset=dir*width;
-  const duration=320;
-  const switchPage=()=>{
-   allowClick=true;
-   try{tab.click()}finally{allowClick=false}
-   const to=document.getElementById(target);
+  const duration=235,offset=dir*width;
+  let outgoing=null,incoming=null,done=false;
+  const finish=()=>{
+   if(done)return;done=true;
+   if(outgoing)outgoing.cancel();
+   if(incoming)incoming.cancel();
+   clearTimeout(release);
+   locked=false;
+   document.body.classList.remove('ec-carousel-moving');
    sync();
-   window.scrollTo(0,0);
-   if(!to||reduced){locked=false;document.body.classList.remove('ec-carousel-moving');return}
-   const anim=to.animate([
-    {transform:'translate3d('+(-offset)+'px,0,0)'},
-    {transform:'translate3d(0,0,0)'}
-   ],{duration,easing:'cubic-bezier(.22,.7,.2,1)'});
-   anim.onfinish=()=>{locked=false;document.body.classList.remove('ec-carousel-moving');sync()};
-   anim.oncancel=()=>{locked=false;document.body.classList.remove('ec-carousel-moving');sync()};
-   clearTimeout(release);release=setTimeout(()=>{locked=false;document.body.classList.remove('ec-carousel-moving');sync()},duration+110);
   };
-  if(reduced||!from){switchPage();return}
-  const out=from.animate([
-   {transform:'translate3d(0,0,0)'},
-   {transform:'translate3d('+offset+'px,0,0)'}
-  ],{duration:235,easing:'cubic-bezier(.35,0,.75,.45)'});
-  out.onfinish=switchPage;
-  out.oncancel=()=>{if(locked)switchPage()};
+  // El cambio de sección se hace una sola vez. Dos animaciones simultáneas
+  // evitan el tirón de esperar a que termine una para empezar la siguiente.
+  allowClick=true;
+  try{tab.click()}finally{allowClick=false}
+  const to=document.getElementById(target);
+  window.scrollTo(0,0);
+  sync();
+  if(reduced||!to||!from){finish();return}
+  // La sección anterior queda en una copia visual temporal para no
+  // alterar el estado ni los formularios de la aplicación.
+  const ghost=document.createElement('div');
+  ghost.setAttribute('aria-hidden','true');
+  ghost.style.cssText='position:fixed;left:0;right:0;top:0;bottom:24px;z-index:30;pointer-events:none;overflow:hidden;contain:layout paint';
+  const clone=from.cloneNode(true);
+  clone.removeAttribute('id');
+  clone.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
+  clone.classList.remove('hidden');
+  clone.style.cssText='position:absolute;left:0;right:0;top:0;margin:0;pointer-events:none;transform:translateZ(0)';
+  ghost.appendChild(clone);
+  document.body.appendChild(ghost);
+  const cleanup=()=>{ghost.remove();finish()};
+  outgoing=clone.animate([{transform:'translate3d(0,0,0)'},{transform:'translate3d('+offset+'px,0,0)'}],
+   {duration,easing:'cubic-bezier(.2,.72,.25,1)',fill:'forwards'});
+  incoming=to.animate([{transform:'translate3d('+(-offset)+'px,0,0)'},{transform:'translate3d(0,0,0)'}],
+   {duration,easing:'cubic-bezier(.2,.72,.25,1)'});
+  incoming.onfinish=cleanup;
+  incoming.oncancel=cleanup;
+  release=setTimeout(cleanup,duration+100);
  }
  // También animar los botones de navegación de Caja y Pedidos.
  document.addEventListener('click',e=>{
@@ -1118,13 +1133,13 @@ body{padding-bottom:24px}
  document.addEventListener('touchstart',e=>{
   if(e.touches.length!==1||locked)return;
   const el=e.target,p=e.touches[0];
-  if(el.closest('input,textarea,select,button,[contenteditable],.order-plate,details,.qty-entry,#appDrawer,#ecTopControls'))return;
+  if(el.closest('input,textarea,select,button,[contenteditable],.order-plate,details,.qty-entry,#appDrawer,#ecTopControls,[role="slider"],.no-swipe'))return;
   start={x:p.clientX,y:p.clientY,time:Date.now(),page:visible()};
  },{passive:true});
  document.addEventListener('touchend',e=>{
   if(!start||locked)return;
   const p=e.changedTouches[0],dx=p.clientX-start.x,dy=p.clientY-start.y,from=start;start=null;
-  if(Math.abs(dx)<90||Math.abs(dx)<Math.abs(dy)*1.5||Date.now()-from.time>1100)return;
+  if(Math.abs(dx)<44||Math.abs(dx)<Math.abs(dy)*1.15||Date.now()-from.time>1300)return;
   if(from.page!==visible())return;
   const index=ids.indexOf(from.page),direction=dx<0?1:-1;
   const next=ids[(index+direction+ids.length)%ids.length];
