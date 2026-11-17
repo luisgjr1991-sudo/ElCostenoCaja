@@ -205,8 +205,8 @@ const costenoHeroArt={
 function costenoSvg(name,cls){return '<svg class="'+cls+'" viewBox="0 0 100 100" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">'+costenoHeroArt[name]+'</svg>'}
 function costenoDefaultProductArt(p){
  const name=String(p.name||'').trim().toLowerCase();
- if(/^tacos?$/.test(name)||/^tacos? de canasta$/.test(name))return costenoSvg('taco','costeno-hero-art');
- if(/^(bebidas?|refrescos?)$/.test(name))return costenoSvg('drink','costeno-hero-art');
+ if((/^tacos?$/.test(name)||/^tacos? de canasta$/.test(name))&&(!p.icon||p.icon==='🌮'))return costenoSvg('taco','costeno-hero-art');
+ if(/^(bebidas?|refrescos?)$/.test(name)&&(!p.icon||p.icon==='🥤'))return costenoSvg('drink','costeno-hero-art');
  return productIconMarkup(p.icon);
 }
 const illustratedIcons={
@@ -229,6 +229,7 @@ const costenoExtraArt={
 };
 Object.assign(illustratedIcons,costenoExtraArt);
 function productIconMarkup(value){
+ if(typeof value==='string'&&value.startsWith('data:image/')&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(value))return '<img class="costeno-photo-icon" src="'+value+'" alt=""/>';
  if(Object.prototype.hasOwnProperty.call(illustratedIcons,value)){
   return '<svg class="costeno-illustration" viewBox="0 0 100 100" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">'+illustratedIcons[value]+'</svg>';
  }
@@ -248,7 +249,7 @@ function openProductIconPicker(productId){
  if(productId!=null&&!target)return;
  const existing=document.getElementById('productIconPicker');if(existing)existing.remove();
  const backdrop=document.createElement('div');backdrop.id='productIconPicker';backdrop.className='icon-picker-backdrop';
- backdrop.innerHTML='<div class="icon-picker-panel" role="dialog" aria-modal="true" aria-label="Elegir icono de producto"><h2>Elige un icono</h2><p class="muted">Toca el dibujo que quieras mostrar en el botón del producto.</p><div class="icon-picker-cats"></div><div class="icon-picker-grid"></div><div class="icon-picker-actions"><button type="button" data-icon-cancel>Cancelar</button><button type="button" class="primary" data-icon-none>Sin icono</button></div></div>';
+ backdrop.innerHTML='<div class="icon-picker-panel" role="dialog" aria-modal="true" aria-label="Elegir icono de producto"><h2>Elige un icono</h2><p class="muted">Toca el dibujo que quieras mostrar en el botón del producto.</p><div class="icon-picker-cats"></div><div class="icon-picker-grid"></div><div class="icon-picker-upload"><button type="button" data-icon-upload>📷 Elegir imagen de mi galería</button><input type="file" accept="image/png,image/jpeg,image/webp" data-icon-file style="display:none"></div><div class="icon-picker-actions"><button type="button" data-icon-cancel>Cancelar</button><button type="button" class="primary" data-icon-none>Sin icono</button></div></div>';
  document.body.appendChild(backdrop);
  const close=()=>backdrop.remove();
  const choose=icon=>{if(target){target.icon=icon;save('ec_products',products);render()}else{pendingNewProductIcon=icon;$('newProductIcon').textContent=(icon||'◻️')+' Elegir icono'}close()};
@@ -256,6 +257,21 @@ function openProductIconPicker(productId){
  const selected=target?target.icon:pendingNewProductIcon;
  const show=category=>{grid.innerHTML='';productIconCategories[category].forEach(icon=>{const b=document.createElement('button');b.type='button';b.innerHTML=productIconMarkup(icon);b.setAttribute('aria-label','Elegir '+icon);if(icon===selected)b.classList.add('selected');b.onclick=()=>choose(icon);grid.appendChild(b)})};
  Object.keys(productIconCategories).forEach((category,i)=>{const b=document.createElement('button');b.type='button';b.textContent=category;b.onclick=()=>show(category);cats.appendChild(b);if(i===0)show(category)});
+ const file=backdrop.querySelector('[data-icon-file]');
+ backdrop.querySelector('[data-icon-upload]').onclick=()=>file.click();
+ file.onchange=()=>{
+  const f=file.files&&file.files[0];if(!f)return;
+  if(!/^image\/(png|jpeg|webp)$/.test(f.type)){alert('Selecciona una imagen PNG, JPG o WebP.');return}
+  const url=URL.createObjectURL(f),img=new Image();
+  img.onload=()=>{
+   const max=192,scale=Math.min(1,max/Math.max(img.width,img.height));
+   const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
+   canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+   URL.revokeObjectURL(url);choose(canvas.toDataURL('image/png'));
+  };
+  img.onerror=()=>{URL.revokeObjectURL(url);alert('No se pudo abrir la imagen.')};
+  img.src=url;
+ };
  backdrop.querySelector('[data-icon-cancel]').onclick=close;backdrop.querySelector('[data-icon-none]').onclick=()=>choose('');
  backdrop.onclick=e=>{if(e.target===backdrop)close()};
 }
@@ -1164,6 +1180,7 @@ main>section:not(#caja) .muted{color:#ddc9b4!important}
 .costeno-gallery-grid button{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;padding:10px 3px!important;font-size:12px!important;background:linear-gradient(145deg,#794122,#392018)!important;color:#fff!important;border:2px solid #bb8a4f!important}
 .costeno-gallery-grid button.selected{border-color:#ffda75!important;box-shadow:0 0 0 2px #ffc44a,0 4px 10px #0008!important}
 .costeno-gallery-preview{width:54px;height:54px;filter:drop-shadow(0 4px 3px #0009)}
+.costeno-photo-icon{width:92px;height:84px;object-fit:contain;display:block;margin:0 auto 3px;filter:drop-shadow(0 4px 3px #0008)}.icon-picker-upload{padding:10px;text-align:center}.icon-picker-upload button{width:100%;background:linear-gradient(160deg,#009fae,#07566a)!important;color:#fff!important;border:2px solid #74dce4!important}
 /* Indicador de carrusel: dentro del WebView, justo encima de la barra Android. */
 #ecScreenIndicator{position:fixed;bottom:0;left:0;right:0;height:24px;z-index:8500;display:flex;align-items:center;justify-content:center;gap:9px;pointer-events:none;background:linear-gradient(0deg,#0c0b0b9c,transparent)}
 #ecScreenIndicator .ec-screen-mark{height:4px;width:27px;border-radius:8px;background:#ffffff60;transition:background .22s ease,width .22s ease,box-shadow .22s ease}
