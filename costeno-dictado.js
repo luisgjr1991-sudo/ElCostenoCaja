@@ -378,6 +378,12 @@ const previous=applySpokenOrder;
 applySpokenOrder=function(transcript){
  const result=parse(transcript);
  if(!result){
+  // Never let the old interpreter change only the aggregate count for a plate-specific edit.
+  const editText=clean(transcript,true);
+  if(/\b(?:agrega|agregar|agregale|ponle|pon|quita|quitar|quitale|sacale|echale|sumale|restale|retira)\b/.test(editText)&&
+     /\b(?:plato|primero|segundo|tercero|cuarto|quinto|ultimo|a todos|cada uno)\b/.test(editText)){
+   return {found:0,notes:transcript,warning:"No pude identificar la modificación del plato. El pedido y sus totales permanecen iguales."};
+  }
   // Do not pass multi-plate orders to the legacy parser: it can repeat one mix
   // in every plate even when the speaker described different plates.
   const safetyText=clean(transcript);
