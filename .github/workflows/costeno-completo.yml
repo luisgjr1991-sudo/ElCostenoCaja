@@ -42,7 +42,7 @@ jobs:
           from pathlib import Path
           import re, subprocess
           html=Path('app/src/main/assets/index.html').read_text()
-          scripts=re.findall(r'<script(?:\\s[^>]*)?>([\\s\\S]*?)</script>',html)
+          scripts=re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',html)
           assert len(scripts)>=3, 'Faltan scripts de la aplicación'
           for n,code in enumerate(scripts):
               p=Path(f'/tmp/costeno-script-{n}.js')
