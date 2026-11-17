@@ -243,6 +243,8 @@ const productIconCategories={
  'Frutas y verduras':['🍎','🍌','🍓','🍉','🍍','🥭','🍇','🥑','🌽','🥕','🥔','🍅'],
  'Negocio y otros':['🍽️','🛒','🛍️','🎁','📦','🧼','🧴','🧻','💐','🪴','✂️','🔧','📱','👕','👟','⭐','❤️','🐾']
 };
+// Compartir únicamente el catálogo de iconos con el administrador de paquetes.
+window.costenoProductIconCategories=productIconCategories;
 let pendingNewProductIcon='🍽️';
 function openProductIconPicker(productId){
  const target=productId==null?null:products.find(p=>String(p.id)===String(productId));
@@ -1527,8 +1529,13 @@ body[data-costeno-icon-style="color"] .ec-global-icon{filter:drop-shadow(0 1px 2
   globalIcons()
  }
  function categories(){
-  Object.keys(productIconCategories).filter(k=>k.startsWith('Paquete: ')).forEach(k=>delete productIconCategories[k]);
-  all().forEach(p=>{const icons=Object.values(p.products||{}).filter(valid);if(icons.length)productIconCategories['Paquete: '+p.name]=[...new Set(icons)]});
+  const catalog=window.costenoProductIconCategories;
+  if(!catalog){console.warn('Catálogo de iconos todavía no disponible');return}
+  Object.keys(catalog).filter(k=>k.startsWith('Paquete: ')).forEach(k=>delete catalog[k]);
+  all().forEach(p=>{
+   const icons=Object.values(p.products||{}).filter(valid);
+   if(icons.length)catalog['Paquete: '+p.name]=[...new Set(icons)];
+  });
  }
  function refresh(){categories();apply()}
  const visual=document.getElementById('visualStyleSettings');
