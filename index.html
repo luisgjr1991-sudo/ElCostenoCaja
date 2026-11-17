@@ -1043,6 +1043,14 @@ header{padding-top:44px!important}
 })();
 </script>
 <style>
+/* El logo superior no participa en los deslizamientos del carrusel.
+   Se conserva su espacio y no se interfiere con la animación de inactividad. */
+body.ec-carousel-moving header,
+body.ec-carousel-moving #headerLogo{
+ animation:none!important;
+ transform:none!important;
+ transition:none!important;
+}
 /* Indicador de carrusel: dentro del WebView, justo encima de la barra Android. */
 #ecScreenIndicator{position:fixed;bottom:0;left:0;right:0;height:24px;z-index:8500;display:flex;align-items:center;justify-content:center;gap:9px;pointer-events:none;background:linear-gradient(0deg,#0c0b0b9c,transparent)}
 #ecScreenIndicator .ec-screen-mark{height:4px;width:27px;border-radius:8px;background:#ffffff60;transition:background .22s ease,width .22s ease,box-shadow .22s ease}
@@ -1069,6 +1077,7 @@ body{padding-bottom:24px}
   const tab=document.querySelector('[data-tab="'+target+'"]');
   if(!tab)return;
   locked=true;
+  document.body.classList.add('ec-carousel-moving');
   const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const width=Math.max(280,document.documentElement.clientWidth);
   const offset=dir*width;
@@ -1079,14 +1088,14 @@ body{padding-bottom:24px}
    const to=document.getElementById(target);
    sync();
    window.scrollTo(0,0);
-   if(!to||reduced){locked=false;return}
+   if(!to||reduced){locked=false;document.body.classList.remove('ec-carousel-moving');return}
    const anim=to.animate([
     {transform:'translate3d('+(-offset)+'px,0,0)'},
     {transform:'translate3d(0,0,0)'}
    ],{duration,easing:'cubic-bezier(.22,.7,.2,1)'});
-   anim.onfinish=()=>{locked=false;sync()};
-   anim.oncancel=()=>{locked=false;sync()};
-   clearTimeout(release);release=setTimeout(()=>{locked=false;sync()},duration+110);
+   anim.onfinish=()=>{locked=false;document.body.classList.remove('ec-carousel-moving');sync()};
+   anim.oncancel=()=>{locked=false;document.body.classList.remove('ec-carousel-moving');sync()};
+   clearTimeout(release);release=setTimeout(()=>{locked=false;document.body.classList.remove('ec-carousel-moving');sync()},duration+110);
   };
   if(reduced||!from){switchPage();return}
   const out=from.animate([
