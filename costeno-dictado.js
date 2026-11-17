@@ -470,7 +470,38 @@ function enumeratedWithAssortedRemainder(raw){
  while(plates.length<total)plates.push({...assorted});
  return {mode:"replace",plates};
 }
+
+function individuallyAssignedPlates(raw){
+ const t=clean(raw).replace(/^(?:(?:van|vamos)\s+a\s+ser|seran|son|hay)\s+/,"").trim();
+ const head=t.match(new RegExp("^"+number+"\\s+platos?\\b"));
+ if(!head)return null;
+ const total=n(head[1]);if(total<2||total>50)return null;
+ const body=t.slice(head[0].length).trim();
+ const ord={primero:0,primer:0,segundo:1,tercero:2,tercer:2,cuarto:3,quinto:4,sexto:5,septimo:6,octavo:7,noveno:8,decimo:9,ultimo:total-1};
+ const ordWord="(?:primero|primer|segundo|tercero|tercer|cuarto|quinto|sexto|septimo|octavo|noveno|decimo|ultimo)";
+ const marker=new RegExp("\\b(?:(?:el|al|en el|para el)\\s+)?(?:(?:plato\\s+("+ordWord+"))|(?:"+ordWord+")\\s+plato|("+ordWord+"))\\b","g");
+ const found=[...body.matchAll(marker)];
+ if(!found.length)return null;
+ const plates=Array.from({length:total},()=>null);
+ const itemRe=new RegExp("\\b"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"\\b","g");
+ const assorted=()=>Object.fromEntries(orderStewNames().map(k=>[k,1]));
+ for(let i=0;i<found.length;i++){
+  const word=found[i][1]||found[i][2]||found[i][0].match(new RegExp(ordWord))[0];
+  const ix=Object.hasOwn(ord,word)?ord[word]:-1;
+  if(ix<0||ix>=total||plates[ix])return null;
+  const part=body.slice(found[i].index+found[i][0].length,i+1<found.length?found[i+1].index:undefined).trim().replace(/^(?:va|van|es|son|con|de|lleva|tiene)\s+/,"").replace(/\s+y\s*$/,"").trim();
+  if(/^surtidos?$/.test(part)){plates[ix]=assorted();continue}
+  const items={};let residue=part;
+  for(const m of part.matchAll(itemRe)){const q=n(m[1]);if(q<1||q>100)return null;const k=keyOf(m[2]);items[k]=(items[k]||0)+q;residue=residue.replace(m[0]," ")}
+  if(!Object.keys(items).length||residue.replace(/\b(?:y|con|de|tacos?|me|pones|pon|lleva|lleve)\b/g," ").trim())return null;
+  plates[ix]=items;
+ }
+ if(plates.some(p=>!p))return null;
+ if(body.slice(0,found[0].index).replace(/\b(?:y|el|en)\b/g," ").trim())return null;
+ return {mode:"replace",plates};
+}
 function parse(raw){
+ const individually=individuallyAssignedPlates(raw);if(individually)return individually;
  const remainder=enumeratedWithAssortedRemainder(raw);if(remainder)return remainder;
  const conversational=conversationalPlates(raw);if(conversational)return conversational;
  const enumerated=colloquialEnumerated(raw);if(enumerated)return enumerated;
