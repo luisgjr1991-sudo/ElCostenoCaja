@@ -373,7 +373,33 @@ function colloquialEnumerated(raw){
  }
  return {mode:"replace",plates};
 }
+
+function conversationalPlates(raw){
+ const t=clean(raw).replace(/^(?:(?:van|vamos)\s+a\s+ser|seran|son|hay|quiero|necesito|ocupo)\s+/,"").trim();
+ const head=t.match(new RegExp("^"+number+"\\s+platos?(?:\\s+de\\s+tacos?)?\\b"));
+ if(!head)return null;
+ const count=n(head[1]);if(count<2||count>50)return null;
+ const body=t.slice(head[0].length).trim();
+ // Markers are anchored to the start or immediately after a completed guiso.
+ // "uno con tres de carne otro con dos de chicharron otro con tres de machaca y el ultimo surtido"
+ const markers=/\b(?:(?:y\s+)?(?:el\s+)?(?:ultimo|primero|segundo|tercero|cuarto|quinto)(?:\s+plato)?(?=\s+(?:surtido|de|con|lleva|va|son|tiene))|(?:y\s+)?(?:en\s+)?(?:uno|un|otro|el\s+otro)(?:\s+plato)?\s+(?:de|con)(?=\s+(?:\d+|un|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)))/g;
+ const found=[...body.matchAll(markers)];
+ if(found.length!==count||body.slice(0,found[0]?.index||0).trim())return null;
+ const itemRe=new RegExp("\\b"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"\\b","g");
+ const plates=[];
+ for(let i=0;i<found.length;i++){
+  let part=body.slice(found[i].index+found[i][0].length,i+1<found.length?found[i+1].index:undefined).trim();
+  part=part.replace(/^(?:de|con|lleva|tiene)\s+/,"").replace(/\s+y\s*$/,"").trim();
+  if(/^surtidos?$/.test(part)){plates.push(Object.fromEntries(orderStewNames().map(k=>[k,1])));continue}
+  const items={};let residue=part;
+  for(const m of part.matchAll(itemRe)){const q=n(m[1]);if(q<1||q>100)return null;const k=keyOf(m[2]);items[k]=(items[k]||0)+q;residue=residue.replace(m[0]," ")}
+  if(!Object.keys(items).length||residue.replace(/\b(?:y|con|de|tacos?|me|pones|pon|lleva|lleve)\b/g," ").trim())return null;
+  plates.push(items);
+ }
+ return {mode:"replace",plates};
+}
 function parse(raw){
+ const conversational=conversationalPlates(raw);if(conversational)return conversational;
  const enumerated=colloquialEnumerated(raw);if(enumerated)return enumerated;
  const selected=selectedAssorted(raw);if(selected)return selected;
  const mixed=mixedAssorted(raw);if(mixed)return mixed;
@@ -412,6 +438,9 @@ const previous=applySpokenOrder;
 applySpokenOrder=function(transcript){
  const result=parse(transcript);
  if(!result){
+  // A multi-plate dictation must never fall back to the old uniform/surtido parser.
+  const normalized=clean(transcript);
+  if(new RegExp("\\b"+number+"\\s+platos?\\b").test(normalized))return {found:0,notes:transcript,warning:"No pude separar todos los platos. No cambié el pedido."};
   // Never let the old interpreter change only the aggregate count for a plate-specific edit.
   const editText=clean(transcript,true);
   if(/\b(?:agrega|agregar|agregale|ponle|pon|quita|quitar|quitale|sacale|echale|sumale|restale|retira)\b/.test(editText)&&
