@@ -1435,15 +1435,66 @@ body[data-costeno-icon-style="line"] .ec-pack-icon,body[data-costeno-icon-style=
 body[data-costeno-icon-style="classic"] .ec-pack-icon,body[data-costeno-icon-style="classic"] #costenoTabletNav svg{filter:sepia(.9)!important}
 #costenoPackManager{margin-top:14px}
 #costenoPackManager input{max-width:100%}
+.ec-global-icon{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;min-width:1.1em;margin-right:.25em}
+.ec-global-icon .ec-pack-icon{margin:0;width:1.15em;height:1.15em}
+body[data-costeno-icon-style="line"] .ec-global-icon,body[data-costeno-icon-style="line"] .tile-icon,body[data-costeno-icon-style="line"] button svg,body[data-costeno-icon-style="line"] .product-icon{filter:grayscale(1) brightness(1.5) contrast(1.25)}
+body[data-costeno-icon-style="classic"] .ec-global-icon,body[data-costeno-icon-style="classic"] .tile-icon,body[data-costeno-icon-style="classic"] button svg,body[data-costeno-icon-style="classic"] .product-icon{filter:sepia(.9) saturate(.6)}
+body[data-costeno-icon-style="color"] .ec-global-icon{filter:drop-shadow(0 1px 2px #0006)}
 </style>
 <script>
 (function(){
  const store='ec_icon_packs',selected='ec_active_pack';
- const built=[{id:'original',name:'Original',products:{},ui:{}},{id:'emoji',name:'Emojis',products:{Taco:'🌮',Bebida:'🥤'},ui:{caja:'🏠',pedidos:'🧾',historial:'🕘',cortes:'📊',ajustes:'⚙️',trash:'🗑️',qr:'▦'}}];
+ const semantic={
+  '🎨':'personalizar','🖨️':'impresora','🖼️':'logotipos','🧾':'tickets','🏷️':'productos','📲':'whatsapp','🏛️':'fiscal','🔊':'sonidos','💾':'respaldos','🎩':'animacion','🕘':'historial','📊':'cortes','⚙️':'ajustes','🗑️':'trash','📦':'paquetes','📷':'camara','🔍':'buscar','📅':'calendario','💳':'tarjeta','💵':'efectivo','➕':'agregar','✏️':'editar','❌':'cerrar','🔙':'regresar','📤':'enviar','📥':'descargar','🖨':'impresora','🏠':'caja','🔔':'alertas','👁️':'vista','💙':'transferencia','🌮':'taco','🥤':'bebida','🛒':'caja','📋':'pedidos','🗑':'trash','🧹':'limpiar','🔄':'restaurar','💰':'cortes'
+ };
+ const emojiPattern=/[\u{1F300}-\u{1FAFF}\u2600-\u27BF](?:\uFE0F|\u200D[\u{1F300}-\u{1FAFF}])*/gu;
+ const built=[{id:'original',name:'Original',products:{},ui:{}},{id:'emoji',name:'Emojis',products:{Taco:'🌮',Bebida:'🥤'},ui:{caja:'🏠',pedidos:'🧾',historial:'🕘',cortes:'📊',ajustes:'⚙️',trash:'🗑️',qr:'▦',personalizar:'🎨',impresora:'🖨️',logotipos:'🖼️',tickets:'🧾',productos:'🏷️',whatsapp:'📲',fiscal:'🏛️',sonidos:'🔊',respaldos:'💾',animacion:'🎩'}}];
  const valid=v=>typeof v==='string'&&(v.length<=8&&!/[<>]/.test(v)||v.length<160000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v));
  const read=()=>{try{const v=JSON.parse(localStorage.getItem(store)||'[]');return Array.isArray(v)?v.slice(0,12):[]}catch(e){return []}};
  const all=()=>built.concat(read());
  const active=()=>all().find(p=>p.id===localStorage.getItem(selected))||built[0];
+ let scanning=false,observer=null;
+ function globalIcons(){
+  if(scanning)return;scanning=true;
+  if(observer)observer.disconnect();
+  try{
+   const p=active(),icons=p.ui||{},isOriginal=p.id==='original';
+   document.querySelectorAll('.ec-global-icon').forEach(el=>{
+    const original=el.dataset.originalEmoji||'';
+    if(!el.isConnected)return;
+    const key=semantic[original],replacement=key&&icons[key];
+    el.replaceChildren(valid(replacement)?node(replacement):document.createTextNode(original));
+   });
+   if(!isOriginal){
+    const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{
+     acceptNode(t){
+      if(!t.nodeValue||!emojiPattern.test(t.nodeValue))return NodeFilter.FILTER_REJECT;
+      emojiPattern.lastIndex=0;
+      const parent=t.parentElement;
+      if(!parent||parent.closest('script,style,textarea,input,option,select,.ec-global-icon,.ec-pack-icon-text,.product-icon,.icon-picker-panel,#costenoPackManager,#costenoTabletNav'))return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+     }
+    });
+    const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+    nodes.forEach(t=>{
+     const raw=t.nodeValue,frag=document.createDocumentFragment();let last=0;
+     for(const m of raw.matchAll(emojiPattern)){
+      const k=semantic[m[0]],v=k&&icons[k];if(!k||!valid(v))continue;
+      if(m.index>last)frag.appendChild(document.createTextNode(raw.slice(last,m.index)));
+      const sp=document.createElement('span');sp.className='ec-global-icon';sp.dataset.originalEmoji=m[0];sp.appendChild(node(v));frag.appendChild(sp);last=m.index+m[0].length;
+     }
+     if(last){if(last<raw.length)frag.appendChild(document.createTextNode(raw.slice(last)));t.replaceWith(frag)}
+    });
+   }
+   document.querySelectorAll('.settings-tile .tile-icon').forEach(el=>{
+    if(!el.dataset.originalEmoji)el.dataset.originalEmoji=el.textContent.trim();
+    const v=icons[semantic[el.dataset.originalEmoji]];
+    el.replaceChildren(valid(v)?node(v):document.createTextNode(el.dataset.originalEmoji));
+   });
+  }finally{scanning=false;if(observer)observer.observe(document.body,{childList:true,subtree:true})}
+ }
+ observer=new MutationObserver(()=>{if(!scanning)globalIcons()});
+
  const node=v=>{if(v.startsWith('data:image/')){const i=document.createElement('img');i.src=v;i.className='ec-pack-icon';i.alt='';return i}const i=document.createElement('span');i.className='ec-pack-icon-text';i.textContent=v;return i};
  function apply(){
   const p=active();
@@ -1460,6 +1511,7 @@ body[data-costeno-icon-style="classic"] .ec-pack-icon,body[data-costeno-icon-sty
   });
   const select=document.getElementById('costenoActivePack');
   if(select){select.replaceChildren();all().forEach(x=>{const o=document.createElement('option');o.value=x.id;o.textContent=x.name;select.appendChild(o)});select.value=p.id}
+  globalIcons()
  }
  function categories(){
   Object.keys(productIconCategories).filter(k=>k.startsWith('Paquete: ')).forEach(k=>delete productIconCategories[k]);
@@ -1481,7 +1533,7 @@ body[data-costeno-icon-style="classic"] .ec-pack-icon,body[data-costeno-icon-sty
     const data=JSON.parse(await file.text());if(!data||typeof data.name!=='string'||!data.name.trim())throw Error('Falta el nombre');
     const products={},ui={};
     Object.entries(data.products||{}).forEach(([k,v])=>{if(k.length<60&&valid(v))products[k]=v});
-    Object.entries(data.ui||{}).forEach(([k,v])=>{if(['caja','pedidos','historial','cortes','ajustes','trash','qr'].includes(k)&&valid(v))ui[k]=v});
+    Object.entries(data.ui||{}).forEach(([k,v])=>{if(['caja','pedidos','historial','cortes','ajustes','trash','qr','personalizar','impresora','logotipos','tickets','productos','whatsapp','fiscal','sonidos','respaldos','animacion','paquetes','camara','buscar','calendario','tarjeta','efectivo','agregar','editar','cerrar','regresar','enviar','descargar','alertas','vista','transferencia','taco','bebida','limpiar','restaurar'].includes(k)&&valid(v))ui[k]=v});
     if(!Object.keys(products).length&&!Object.keys(ui).length)throw Error('No hay iconos válidos');
     const packs=read();if(packs.length>=12)throw Error('Máximo 12 paquetes');
     const p={id:'pack_'+Date.now(),name:data.name.slice(0,45),products,ui};packs.push(p);
@@ -1493,6 +1545,7 @@ body[data-costeno-icon-style="classic"] .ec-pack-icon,body[data-costeno-icon-sty
  }
  const style=document.getElementById('costenoIconStyle');if(style)style.addEventListener('change',()=>setTimeout(apply,0));
  refresh();
+ observer.observe(document.body,{childList:true,subtree:true});
 })();
 </script>
 </body></html>
