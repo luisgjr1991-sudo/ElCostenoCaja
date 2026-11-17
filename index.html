@@ -251,7 +251,7 @@ function openProductIconPicker(productId){
  if(productId!=null&&!target)return;
  const existing=document.getElementById('productIconPicker');if(existing)existing.remove();
  const backdrop=document.createElement('div');backdrop.id='productIconPicker';backdrop.className='icon-picker-backdrop';
- backdrop.innerHTML='<div class="icon-picker-panel" role="dialog" aria-modal="true" aria-label="Elegir icono de producto"><h2>Elige un icono</h2><p class="muted">Toca el dibujo que quieras mostrar en el botón del producto.</p><div class="icon-picker-cats"></div><div class="icon-picker-grid"></div><div class="icon-picker-upload"><button type="button" data-icon-upload>📷 Elegir imagen de mi galería</button><input type="file" accept="image/png,image/jpeg,image/webp" data-icon-file style="display:none"></div><div class="icon-picker-actions"><button type="button" data-icon-cancel>Cancelar</button><button type="button" class="primary" data-icon-none>Sin icono</button></div></div>';
+ backdrop.innerHTML='<div class="icon-picker-panel" role="dialog" aria-modal="true" aria-label="Elegir icono de producto"><h2>Elige un icono</h2><p class="muted">Toca el dibujo que quieras mostrar en el botón del producto.</p><div class="icon-picker-cats"></div><div class="icon-picker-grid"></div><div class="icon-picker-upload"><button type="button" data-icon-upload>📷 Elegir imagen de mi galería</button><input type="file" accept="image/png,image/jpeg,image/webp" data-icon-file style="display:none"><button type="button" data-product-pack-upload style="margin-top:8px;background:#7b4a22!important;border-color:#d9a05a!important">📦 Agregar paquete de imágenes para productos</button><input type="file" accept=".json,application/json" data-product-pack-file style="display:none"><p class="muted" data-product-pack-status style="font-size:12px;margin:5px 0">Importa un paquete JSON sin cambiar los iconos de la aplicación.</p></div><div class="icon-picker-actions"><button type="button" data-icon-cancel>Cancelar</button><button type="button" class="primary" data-icon-none>Sin icono</button></div></div>';
  document.body.appendChild(backdrop);
  const close=()=>backdrop.remove();
  const choose=icon=>{if(target){target.icon=icon;save('ec_products',products);render()}else{pendingNewProductIcon=icon;$('newProductIcon').textContent=(typeof icon==='string'&&icon.startsWith('data:image/'))?'🖼️ Imagen elegida':(icon||'◻️')+' Elegir icono'}close()};
@@ -273,6 +273,24 @@ function openProductIconPicker(productId){
   };
   img.onerror=()=>{URL.revokeObjectURL(url);alert('No se pudo abrir la imagen.')};
   img.src=url;
+ };
+ const packInput=backdrop.querySelector('[data-product-pack-file]');
+ backdrop.querySelector('[data-product-pack-upload]').onclick=()=>packInput.click();
+ packInput.onchange=async()=>{
+  const f=packInput.files&&packInput.files[0];if(!f)return;
+  const status=backdrop.querySelector('[data-product-pack-status]');
+  try{
+   if(typeof window.costenoImportProductPack!=='function')throw Error('El administrador de paquetes no está disponible');
+   const name=await window.costenoImportProductPack(f);
+   status.textContent='✓ Paquete "'+name+'" agregado. Selecciónalo en las categorías de arriba.';
+   cats.replaceChildren();
+   Object.keys(productIconCategories).forEach(category=>{
+    const b=document.createElement('button');b.type='button';b.textContent=category;
+    b.onclick=()=>show(category);cats.appendChild(b);
+   });
+   show('Paquete: '+name);
+  }catch(err){status.textContent='No se pudo importar: '+err.message}
+  packInput.value='';
  };
  backdrop.querySelector('[data-icon-cancel]').onclick=close;backdrop.querySelector('[data-icon-none]').onclick=()=>choose('');
  backdrop.onclick=e=>{if(e.target===backdrop)close()};
@@ -1574,6 +1592,24 @@ body[data-costeno-icon-style="color"] .ec-global-icon{filter:drop-shadow(0 1px 2
    if(icons.length)catalog['Paquete: '+p.name]=[...new Set(icons)];
   });
  }
+ // Importación independiente: solo agrega imágenes al catálogo de Productos.
+ window.costenoImportProductPack=async file=>{
+  if(file.size>1000000)throw Error('El archivo JSON supera 1 MB');
+  const data=JSON.parse(await file.text());
+  if(!data||typeof data.name!=='string'||!data.name.trim()||!data.products||typeof data.products!=='object'||Array.isArray(data.products))throw Error('El JSON necesita nombre y sección products');
+  const products={};
+  Object.entries(data.products).forEach(([key,value])=>{if(key.length<60&&valid(value))products[key]=value});
+  if(!Object.keys(products).length)throw Error('No se encontraron imágenes de productos válidas');
+  const packs=read();if(packs.length>=12)throw Error('Máximo 12 paquetes');
+  const name=data.name.trim().slice(0,45);
+  if(all().some(p=>p.name===name))throw Error('Ya existe un paquete con ese nombre');
+  const p={id:'product_pack_'+Date.now(),name,products,ui:{}};
+  packs.push(p);
+  localStorage.setItem(store,JSON.stringify(packs));
+  categories();
+  apply();
+  return name;
+ };
  function refresh(){categories();apply()}
  const visual=document.getElementById('visualStyleSettings');
  if(visual){
