@@ -37,6 +37,22 @@ jobs:
           grep -q 'costenoDictadoVersion' app/src/main/assets/index.html
           python3 -c 'from pathlib import Path; import re; h=Path("app/src/main/assets/index.html").read_text(); scripts=re.findall(r"<script(?:\s[^>]*)?>([\s\S]*?)</script>",h); assert len(scripts)>=1; Path("/tmp/costeno-main.js").write_text(scripts[0]); assert "const previous=applySpokenOrder" in scripts[0]; assert scripts[0].index("let orderPlates=")<scripts[0].index("const previous=applySpokenOrder")<scripts[0].rindex("})();"), "Intérprete fuera del ámbito de pedidos"'
           node --check /tmp/costeno-main.js
+          # Validar también los módulos de personalización e iconos, no solo el script principal.
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess
+          html=Path('app/src/main/assets/index.html').read_text()
+          scripts=re.findall(r'<script(?:\\s[^>]*)?>([\\s\\S]*?)</script>',html)
+          assert len(scripts)>=3, 'Faltan scripts de la aplicación'
+          for n,code in enumerate(scripts):
+              p=Path(f'/tmp/costeno-script-{n}.js')
+              p.write_text(code)
+              subprocess.run(['node','--check',str(p)],check=True)
+          assert 'ec_icon_packs' in html and 'ec_active_pack' in html, 'Falta gestor de paquetes'
+          assert 'costenoActivePack' in html and 'globalIcons()' in html, 'Falta cambio global de iconos'
+          assert 'costenoTabletNav' in html, 'Falta navegación principal'
+          print(f'Validados {len(scripts)} scripts y funciones principales')
+          PY
       - name: Compilar APK Android completa
         run: gradle assembleDebug --no-daemon
       - name: Verificar APK completa y tamaño antes de publicar
