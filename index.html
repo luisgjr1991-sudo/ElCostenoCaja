@@ -1183,6 +1183,14 @@ main>section:not(#caja) .muted{color:#ddc9b4!important}
 .costeno-gallery-grid button.selected{border-color:#ffda75!important;box-shadow:0 0 0 2px #ffc44a,0 4px 10px #0008!important}
 .costeno-gallery-preview{width:54px;height:54px;filter:drop-shadow(0 4px 3px #0009)}
 .costeno-photo-icon{width:92px;height:84px;object-fit:contain;display:block;margin:0 auto 3px;filter:drop-shadow(0 4px 3px #0008)}.icon-picker-upload{padding:10px;text-align:center}.icon-picker-upload button{width:100%;background:linear-gradient(160deg,#009fae,#07566a)!important;color:#fff!important;border:2px solid #74dce4!important}
+/* Imágenes de productos: proporción original, transparencia y sin recortes */
+#caja #products .product-icon{display:flex!important;align-items:center!important;justify-content:center!important;min-height:90px!important;height:auto!important;overflow:visible!important;background:transparent!important;border:0!important}
+#caja #products .product-icon .costeno-photo-icon{display:block!important;width:auto!important;height:auto!important;max-width:100%!important;max-height:105px!important;object-fit:contain!important;object-position:center!important;margin:0 auto 6px!important;background:transparent!important;border:0!important;border-radius:0!important;clip-path:none!important}
+#caja #products .product{overflow:visible!important}
+#productIconPicker .icon-picker-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important}
+#productIconPicker .icon-picker-grid button{min-height:105px!important;overflow:visible!important;background:transparent!important}
+#productIconPicker .icon-picker-grid img{display:block!important;width:auto!important;height:auto!important;max-width:100%!important;max-height:94px!important;object-fit:contain!important;background:transparent!important;clip-path:none!important}
+#productIconPicker .icon-picker-panel{overflow-y:auto!important}
 /* Barra de cinco accesos de la maqueta de tableta. */
 #ecScreenIndicator{display:none!important}
 #ecTopGear{display:none!important}
