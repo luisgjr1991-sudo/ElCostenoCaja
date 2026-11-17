@@ -1468,6 +1468,7 @@ body[data-costeno-icon-style="color"] .ec-global-icon{filter:drop-shadow(0 1px 2
    if(!isOriginal){
     const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{
      acceptNode(t){
+      emojiPattern.lastIndex=0;
       if(!t.nodeValue||!emojiPattern.test(t.nodeValue))return NodeFilter.FILTER_REJECT;
       emojiPattern.lastIndex=0;
       const parent=t.parentElement;
