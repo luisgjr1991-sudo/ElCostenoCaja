@@ -29,7 +29,8 @@ function clean(raw,keepActions=false){
 function keyOf(x){
  if(/frijol/.test(x))return "Frijol";
  if(/chicharron/.test(x))return "Chicharrón";
- if(/machaca|asada/.test(x))return orderStewNames()[3];
+ if(/machaca/.test(x))return "Machaca";
+ if(/asada/.test(x))return "Carne asada";
  return "Carne";
 }
 
@@ -478,6 +479,11 @@ function parse(raw){
 }
 const previous=applySpokenOrder;
 applySpokenOrder=function(transcript){
+ // Never silently substitute Saturday asada for spoken machaca, or vice versa.
+ const heardStew=clean(transcript,true);
+ const todayStew=orderStewNames()[3];
+ if(/\bmachaca\b/.test(heardStew)&&todayStew==="Carne asada")return {found:0,notes:transcript,warning:"Hoy sábado el guiso es Carne asada, no Machaca. No cambié el pedido."};
+ if(/\b(?:carne asada|asada)\b/.test(heardStew)&&todayStew!=="Carne asada")return {found:0,notes:transcript,warning:"La Carne asada se ofrece los sábados. No cambié el pedido."};
  const result=parse(transcript);
  if(!result){
   // A multi-plate dictation must never fall back to the old uniform/surtido parser.
