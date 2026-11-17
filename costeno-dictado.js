@@ -590,7 +590,22 @@ function compoundPlateEdit(raw){
  if(!Object.values(changes).some(Boolean))return {error:"No hay cambios que aplicar."};
  return {mode:"adjustBatch",index,changes};
 }
+
+function incrementalMultiplePlates(raw){
+ let t=clean(raw,true).replace(/^(?:y|ahora|luego|despues|tambien)\s+/,"").trim();
+ t=t.replace(/^(?:van a ser|seran|son|quiero|necesito|ocupo|agrega|agregame|ponme|dame|pon|suma|sumame)\s+/,"").trim();
+ const m=t.match(new RegExp("^(?:(?:otros?|otras?|unos?|unas?)\\s+)?"+number+"\\s+platos?\\s+(?:mas\\s+)?(?:con|de|que lleven|que tengan)\\s+(.+)$"));
+ if(!m)return null;
+ const count=n(m[1]),body=m[2].replace(/\s+(?:en\s+)?cada\s+uno$/,"").trim();
+ if(count<1||count>50||orderPlates.length+count>50)return {error:"Máximo 50 platos."};
+ const itemRe=new RegExp("\\b"+number+"\\s+(?:tacos?\\s+)?(?:de\\s+)?"+flavors+"\\b","g");
+ const items={};let rest=body;
+ for(const x of body.matchAll(itemRe)){const q=n(x[1]);if(q<1||q>100)return {error:"Cantidad de tacos no válida."};const k=keyOf(x[2]);items[k]=(items[k]||0)+q;rest=rest.replace(x[0]," ")}
+ if(!Object.keys(items).length||rest.replace(/\b(?:y|con|de|tacos?)\b/g," ").trim())return {error:"No entendí la cantidad y guiso de los platos."};
+ return {mode:orderPlates.length?"append":"replace",plates:Array.from({length:count},()=>({...items}))};
+}
 function parse(raw){
+ const multiple=incrementalMultiplePlates(raw);if(multiple)return multiple;
  const compound=compoundPlateEdit(raw);if(compound)return compound;
  const incremental=incrementalSinglePlate(raw);if(incremental)return incremental;
  const named=namedPlateAssignments(raw);if(named)return named;
@@ -640,7 +655,8 @@ applySpokenOrder=function(transcript){
  if(/\b(?:carne asada|asada)\b/.test(heardStew)&&todayStew!=="Carne asada")return {found:0,notes:transcript,warning:"La Carne asada se ofrece los sábados. No cambié el pedido."};
  const result=parse(transcript);
  if(!result){
-  // Never let legacy dictation add unassigned tacos for an intended new plate.\n  if(/\\b(?:otro|otra|uno mas|otro mas|cuarto|cuarta|plato)\\b/.test(clean(transcript))&&/\\b(?:con|de)\\b/.test(clean(transcript)))return {found:0,notes:transcript,warning:"No pude identificar el plato nuevo. No modifiqué los tacos ni los platos."};\n  // A multi-plate dictation must never fall back to the old uniform/surtido parser.
+  // Reject unparsed plate requests rather than changing only aggregate taco totals.
+  if(/\\b(?:otro|otra|otros|otras|uno mas|otro mas|cuarto|cuarta|plato|platos)\\b/.test(clean(transcript)))return {found:0,notes:"",warning:"No entendí la orden de platos. No cambié el pedido."};
   const normalized=clean(transcript);
   if(new RegExp("\\b"+number+"\\s+platos?\\b").test(normalized))return {found:0,notes:transcript,warning:"No pude separar todos los platos. No cambié el pedido."};
   // Never let the old interpreter change only the aggregate count for a plate-specific edit.
