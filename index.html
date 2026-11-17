@@ -1437,6 +1437,15 @@ body[data-costeno-icon-style="line"] .ec-pack-icon,body[data-costeno-icon-style=
 body[data-costeno-icon-style="classic"] .ec-pack-icon,body[data-costeno-icon-style="classic"] #costenoTabletNav svg{filter:sepia(.9)!important}
 #costenoPackManager{margin-top:14px}
 #costenoPackManager input{max-width:100%}
+/* Acciones de caja: iconos grandes, sin duplicados ni miniaturas */
+#caja .emergency-row button{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;gap:12px!important;min-height:98px!important;padding:12px!important;text-align:left!important;font-size:clamp(13px,3.2vw,17px)!important;line-height:1.25!important}
+#caja .emergency-row button .ec-action-icon{display:flex!important;flex:0 0 54px!important;width:54px!important;height:54px!important;align-items:center;justify-content:center}
+#caja .emergency-row button .ec-action-icon svg{width:52px!important;height:52px!important;display:block!important;filter:drop-shadow(0 2px 2px #0005)}
+#caja .emergency-row button .ec-action-label{flex:1;min-width:0;font-weight:800}
+#settingsTiles .settings-tile .tile-icon .ec-custom-setting{width:80px;height:80px;display:flex;align-items:center;justify-content:center;border-radius:16px;background:linear-gradient(145deg,#77492b,#351c15);border:2px solid #c69357;box-shadow:inset 0 1px 5px #ffd48644,0 3px 6px #0007;font-size:42px;line-height:1}
+#settingsTiles .settings-tile .tile-icon .ec-custom-setting span{filter:drop-shadow(0 2px 2px #0009)}
+@media(max-width:400px){#caja .emergency-row button{gap:6px!important;padding:8px!important}#caja .emergency-row button .ec-action-icon{flex-basis:43px!important;width:43px!important;height:43px!important}#caja .emergency-row button .ec-action-icon svg{width:43px!important;height:43px!important}}
+
 .ec-global-icon{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;min-width:1.1em;margin-right:.25em}
 .ec-global-icon .ec-pack-icon{margin:0;width:1.15em;height:1.15em}
 body[data-costeno-icon-style="line"] .ec-global-icon,body[data-costeno-icon-style="line"] .tile-icon,body[data-costeno-icon-style="line"] button svg,body[data-costeno-icon-style="line"] .product-icon{filter:grayscale(1) brightness(1.5) contrast(1.25)}
@@ -1501,16 +1510,44 @@ body[data-costeno-icon-style="color"] .ec-global-icon{filter:drop-shadow(0 1px 2
      if(last){if(last<raw.length)frag.appendChild(document.createTextNode(raw.slice(last)));t.replaceWith(frag)}
     });
    }
+   // Los paquetes externos pueden reutilizar la misma imagen en funciones diferentes.
+   // En ese caso mostrar un icono específico para cada función, no una miniatura repetida.
+   const uniqueSettings={
+    personalizar:'🎨',impresora:'🖨️',logotipos:'🖼️',tickets:'🧾',productos:'🌮',
+    whatsapp:'📲',fiscal:'🧮',sonidos:'🎵',respaldos:'💾',animacion:'🎩',
+    historial:'📋',cortes:'📈'
+   };
+   const usedImages={};
+   Object.keys(uniqueSettings).forEach(k=>{const v=icons[k];if(typeof v==='string'&&v.startsWith('data:image/'))(usedImages[v]||(usedImages[v]=[])).push(k)});
    document.querySelectorAll('.settings-tile .tile-icon').forEach(el=>{
     if(!el.dataset.originalEmoji)el.dataset.originalEmoji=el.textContent.trim();
     const v=icons[semantic[el.dataset.originalEmoji]];
-    el.replaceChildren(valid(v)?node(v):document.createTextNode(el.dataset.originalEmoji));
+    const key=semantic[el.dataset.originalEmoji];
+    const repeated=typeof v==='string'&&v.startsWith('data:image/')&&(usedImages[v]||[]).length>1;
+    if(repeated&&uniqueSettings[key]){
+     const badge=document.createElement('span');badge.className='ec-custom-setting';
+     const symbol=document.createElement('span');symbol.textContent=uniqueSettings[key];badge.appendChild(symbol);el.replaceChildren(badge);
+    }else el.replaceChildren(valid(v)?node(v):document.createTextNode(el.dataset.originalEmoji));
    });
   }finally{scanning=false;if(observer)observer.observe(document.body,{childList:true,subtree:true})}
  }
  observer=new MutationObserver(()=>{if(!scanning)globalIcons()});
 
  const node=v=>{if(v.startsWith('data:image/')){const i=document.createElement('img');i.src=v;i.className='ec-pack-icon';i.alt='';return i}const i=document.createElement('span');i.className='ec-pack-icon-text';i.textContent=v;return i};
+ function renderCashActions(){
+  const defs=[
+   ['emergencyUndo','Borrar último cobro','<path d="M18 28h28M24 28v29a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4V28M27 23h10M30 35v17M36 35v17" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/><path d="M11 47a23 23 0 0 1 7-24M11 47l-1-11M11 47l11-2" fill="none" stroke="#ffcf6b" stroke-width="4" stroke-linecap="round"/>'],
+   ['printTransferQr','Imprimir QR transferencia','<rect x="8" y="8" width="21" height="21" rx="2" fill="none" stroke="#fff" stroke-width="4"/><rect x="35" y="8" width="21" height="21" rx="2" fill="none" stroke="#fff" stroke-width="4"/><rect x="8" y="35" width="21" height="21" rx="2" fill="none" stroke="#fff" stroke-width="4"/><path d="M14 14h9v9h-9zM41 14h9v9h-9zM14 41h9v9h-9zM35 36h7v7h-7zM47 35h8v7h-8zM35 49h8v8h-8zM48 48h8v8h-8z" fill="#fff"/>']
+  ];
+  defs.forEach(([id,label,paths])=>{
+   const b=document.getElementById(id);if(!b)return;
+   b.replaceChildren();
+   const icon=document.createElement('span');icon.className='ec-action-icon';
+   icon.innerHTML='<svg viewBox="0 0 64 64" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">'+paths+'</svg>';
+   const caption=document.createElement('span');caption.className='ec-action-label';caption.textContent=label;
+   b.append(icon,caption);
+  });
+ }
  function apply(){
   const p=active();
   document.querySelectorAll('#costenoTabletNav [data-tab]').forEach(b=>{
@@ -1526,7 +1563,7 @@ body[data-costeno-icon-style="color"] .ec-global-icon{filter:drop-shadow(0 1px 2
   });
   const select=document.getElementById('costenoActivePack');
   if(select){select.replaceChildren();all().forEach(x=>{const o=document.createElement('option');o.value=x.id;o.textContent=x.name;select.appendChild(o)});select.value=p.id}
-  globalIcons()
+  globalIcons();renderCashActions();
  }
  function categories(){
   const catalog=window.costenoProductIconCategories;
