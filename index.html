@@ -265,7 +265,7 @@ function openProductIconPicker(productId){
   const packs=JSON.parse(localStorage.getItem('ec_icon_packs')||'[]');
   if(Array.isArray(packs))packs.forEach(pack=>{
    if(!pack||!pack.products||typeof pack.products!=='object')return;
-   const entries=Object.entries(pack.products).filter(([name,icon])=>typeof icon==='string'&&(icon.length<160000&&/^data:image\\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(icon)||icon.length<=8));
+   const entries=Object.entries(pack.products).filter(([name,icon])=>typeof icon==='string'&&(icon.length<160000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(icon)||icon.length<=8));
    if(entries.length)catalog['Paquete: '+String(pack.name||'Sin nombre')]=entries;
   });
  }catch(err){console.warn('No se pudo leer la biblioteca',err)}
