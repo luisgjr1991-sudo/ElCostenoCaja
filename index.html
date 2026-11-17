@@ -1062,7 +1062,7 @@ header{padding-top:44px!important}
   $('ecTopBack').hidden=current==='caja'||current==='pedidos';
   $('ecTopBack').textContent=current==='ajustes'?'⌂':'←';
   $('ecTopBack').setAttribute('aria-label',current==='ajustes'?'Ir a inicio de cobro':'Regresar');
-  $('ecTopGear').hidden=!(current==='caja'||current==='pedidos');
+  // Ajustes ahora se abre desde la barra inferior.
  }
  function navigate(id){
   const btn=document.querySelector('[data-tab="'+id+'"]');
@@ -1070,7 +1070,7 @@ header{padding-top:44px!important}
   update();
   window.scrollTo(0,0);
  }
- $('ecTopGear').onclick=()=>{origin=active();navigate('ajustes');updateBackIcon()};
+ // Sin engrane flotante: evita tapar los botones de cobro.
  let lastExitTap=0;
  function back(){
   if(!$('settingsDetail').classList.contains('hidden')&&active()==='ajustes'){$('settingsBack').click();update();return}
@@ -1193,6 +1193,12 @@ body{padding-bottom:90px!important}
 #bottomNavigation{display:none!important}
 @media(min-width:800px){#costenoTabletNav{left:50%;transform:translateX(-50%);max-width:850px;gap:12px;background:#28170fe8;border:2px solid #9e764c;border-radius:18px 18px 0 0;padding:10px}#costenoTabletNav button{min-height:76px;font-size:16px!important}#costenoTabletNav svg{width:38px;height:38px}}
 @media print{#costenoTabletNav{display:none!important}}
+/* Separar logo y acciones de cobro; nunca superponer elementos. */
+body.welcome-done header{min-height:115px!important;box-sizing:border-box!important;padding:8px 14px 12px!important;display:flex!important;align-items:flex-start!important;justify-content:flex-end!important}
+body.welcome-done #headerLogo{position:relative!important;top:auto!important;right:auto!important;left:auto!important;transform:none!important;max-width:165px!important;max-height:91px!important;width:auto!important;height:auto!important;margin:0!important;object-fit:contain!important}
+body.welcome-done #caja>.emergency-row{position:relative!important;z-index:1!important;margin-top:4px!important}
+#ecTopControls{pointer-events:none!important}
+#ecTopBack:not([hidden]){pointer-events:auto!important}
 /* Indicador de carrusel: dentro del WebView, justo encima de la barra Android. */
 #ecScreenIndicator{position:fixed;bottom:0;left:0;right:0;height:24px;z-index:8500;display:flex;align-items:center;justify-content:center;gap:9px;pointer-events:none;background:linear-gradient(0deg,#0c0b0b9c,transparent)}
 #ecScreenIndicator .ec-screen-mark{height:4px;width:27px;border-radius:8px;background:#ffffff60;transition:background .22s ease,width .22s ease,box-shadow .22s ease}
