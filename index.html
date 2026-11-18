@@ -1248,146 +1248,39 @@ main>section.ec-spin-page:not(.hidden){animation:ecSpinPageIn .17s ease-out both
 body{padding-bottom:24px}
 @media print{#ecScreenIndicator{display:none!important}}
 </style>
-<nav id="costenoTabletNav" aria-label="Cambiar pantalla"><button type="button" data-tab="caja"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="49" r="24" fill="#25dc35" stroke="#0a6c1a" stroke-width="5"/><ellipse cx="41" cy="38" rx="8" ry="6" fill="#a8ff9c" opacity=".8"/></svg><span>Caja</span></button><button type="button" data-tab="pedidos"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M10 40 H62 V75 H10Z" fill="#f5f5f5" stroke="#3b3b3b" stroke-width="4"/><path d="M62 49 H78 L90 62 V75 H62Z" fill="#f5f5f5" stroke="#3b3b3b" stroke-width="4"/><circle cx="28" cy="77" r="10" fill="#393939" stroke="#eee" stroke-width="4"/><circle cx="74" cy="77" r="10" fill="#393939" stroke="#eee" stroke-width="4"/><path d="M16 49 H56 M16 57 H51" stroke="#858585" stroke-width="4"/></svg><span>Pedidos</span></button><button type="button" data-tab="historial"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="20" y="15" width="60" height="72" rx="7" fill="#f8f8f8" stroke="#797979" stroke-width="4"/><path d="M31 29 H69 M31 43 H69 M31 57 H64 M31 71 H56" stroke="#424242" stroke-width="5" stroke-linecap="round"/></svg><span>Historial</span></button><button type="button" data-tab="cortes"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="15" y="56" width="16" height="29" rx="3" fill="#fff"/><rect x="42" y="37" width="16" height="48" rx="3" fill="#fff"/><rect x="69" y="19" width="16" height="66" rx="3" fill="#fff"/></svg><span>Cortes</span></button><button type="button" data-tab="ajustes"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M44 11 H56 L60 23 L70 28 L81 23 L89 33 L82 44 L84 56 L94 64 L88 77 L76 75 L66 83 L64 95 H37 L34 82 L24 76 L12 78 L6 65 L16 55 L17 44 L10 33 L19 22 L31 28 L40 23Z" fill="#e8e8e8" stroke="#686868" stroke-width="4"/><circle cx="50" cy="52" r="16" fill="#6e6e6e" stroke="#fff" stroke-width="5"/></svg><span>Ajustes</span></button></nav>
+<style id="ecFixedNavRepair">
+#costenoTabletNav{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;overflow:visible!important;touch-action:pan-y!important}
+#costenoTabletNav button{position:relative!important;transform:none!important;min-width:0!important}
+#settingsTiles .settings-tile .tile-icon{display:flex!important;align-items:center!important;justify-content:center!important;min-height:65px!important;min-width:65px!important;font-size:42px!important}
+#settingsTiles .settings-tile .tile-icon:empty:before{content:"⚙️";font-size:40px}
+#settingsTiles .settings-tile .tile-icon img{object-fit:contain!important;max-width:78px!important;max-height:78px!important}
+#cortes,#pedidos,#ajustes,#historial,#caja{scroll-margin-bottom:110px}
+main{padding-bottom:120px!important}
+</style><nav id="costenoTabletNav" aria-label="Cambiar pantalla"><button type="button" data-tab="caja"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="49" r="24" fill="#25dc35" stroke="#0a6c1a" stroke-width="5"/><ellipse cx="41" cy="38" rx="8" ry="6" fill="#a8ff9c" opacity=".8"/></svg><span>Caja</span></button><button type="button" data-tab="pedidos"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M10 40 H62 V75 H10Z" fill="#f5f5f5" stroke="#3b3b3b" stroke-width="4"/><path d="M62 49 H78 L90 62 V75 H62Z" fill="#f5f5f5" stroke="#3b3b3b" stroke-width="4"/><circle cx="28" cy="77" r="10" fill="#393939" stroke="#eee" stroke-width="4"/><circle cx="74" cy="77" r="10" fill="#393939" stroke="#eee" stroke-width="4"/><path d="M16 49 H56 M16 57 H51" stroke="#858585" stroke-width="4"/></svg><span>Pedidos</span></button><button type="button" data-tab="historial"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="20" y="15" width="60" height="72" rx="7" fill="#f8f8f8" stroke="#797979" stroke-width="4"/><path d="M31 29 H69 M31 43 H69 M31 57 H64 M31 71 H56" stroke="#424242" stroke-width="5" stroke-linecap="round"/></svg><span>Historial</span></button><button type="button" data-tab="cortes"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="15" y="56" width="16" height="29" rx="3" fill="#fff"/><rect x="42" y="37" width="16" height="48" rx="3" fill="#fff"/><rect x="69" y="19" width="16" height="66" rx="3" fill="#fff"/></svg><span>Cortes</span></button><button type="button" data-tab="ajustes"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M44 11 H56 L60 23 L70 28 L81 23 L89 33 L82 44 L84 56 L94 64 L88 77 L76 75 L66 83 L64 95 H37 L34 82 L24 76 L12 78 L6 65 L16 55 L17 44 L10 33 L19 22 L31 28 L40 23Z" fill="#e8e8e8" stroke="#686868" stroke-width="4"/><circle cx="50" cy="52" r="16" fill="#6e6e6e" stroke="#fff" stroke-width="5"/></svg><span>Ajustes</span></button></nav>
 <script>
-/* Carrusel circular con inercia. Sin duplicar secciones ni tocar datos. */
+/* Navegación fija: los cinco accesos conservan siempre su posición. */
 (function(){
- const ids=['caja','pedidos','historial','cortes','ajustes'];
+ const ids=['caja','cortes','pedidos','ajustes','historial'];
  const nav=document.getElementById('costenoTabletNav');
  if(!nav)return;
- const buttons=ids.map(id=>nav.querySelector('[data-tab="'+id+'"]'));
+ ids.forEach(id=>{const b=nav.querySelector('[data-tab="'+id+'"]');if(b)nav.appendChild(b)});
  const active=()=>ids.find(id=>{const el=document.getElementById(id);return el&&!el.classList.contains('hidden')})||'caja';
- const wrap=n=>(n%5+5)%5;
- let position=ids.indexOf(active()),raf=0,drag=null,suppressClickUntil=0,internal=false,transitionTimer=0;
- const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
- function paint(){
-  const w=nav.clientWidth-12,step=w/5;
-  const center=Math.round(position);
-  buttons.forEach((btn,i)=>{
-   let delta=i-position;
-   delta-=5*Math.round(delta/5);
-   btn.style.transform='translate3d('+((wrap(i)-i+delta)*step)+'px,0,0)';
-   btn.style.zIndex=String(10-Math.round(Math.abs(delta)));
-   btn.classList.toggle('selected',i===wrap(center));
-   btn.setAttribute('aria-current',i===wrap(center)?'page':'false');
-  });
- }
- // Las páginas son las originales. Solo animamos su entrada brevemente.
- function showPage(index){
-  const id=ids[wrap(index)];
-  if(active()===id)return;
-  const tab=document.querySelector('#bottomNavigation [data-tab="'+id+'"]')||
-   Array.from(document.querySelectorAll('[data-tab]')).find(b=>b.closest('#costenoTabletNav')===null&&b.dataset.tab===id);
-  if(!tab)return;
-  internal=true;
-  try{tab.click()}finally{internal=false}
-  const page=document.getElementById(id);
-  if(page&&!reduced){
-   page.classList.remove('ec-spin-page');
-   void page.offsetWidth;
-   page.classList.add('ec-spin-page');
-   clearTimeout(transitionTimer);
-   transitionTimer=setTimeout(()=>page.classList.remove('ec-spin-page'),190);
-  }
- }
- function setPosition(next){
-  const before=wrap(Math.round(position));
-  position=next;
-  const after=wrap(Math.round(position));
-  if(before!==after)showPage(after);
-  paint();
- }
- function stop(){if(raf)cancelAnimationFrame(raf);raf=0}
- function settle(){
-  stop();
-  const goal=Math.round(position);
-  if(reduced){setPosition(goal);return}
-  const begin=position,dist=goal-begin,t0=performance.now(),duration=170;
-  const frame=t=>{
-   const p=Math.min(1,(t-t0)/duration);
-   setPosition(begin+dist*(1-Math.pow(1-p,3)));
-   if(p<1)raf=requestAnimationFrame(frame);else{raf=0;setPosition(goal)}
-  };
-  raf=requestAnimationFrame(frame);
- }
- function spin(velocity){
-  stop();
-  if(reduced){setPosition(Math.round(position+Math.sign(velocity)));return}
-  // Velocidad en pantallas/ms; fricción para desacelerar sin bloquear toques.
-  let speed=Math.max(-.021,Math.min(.021,velocity)),last=performance.now(),travel=0;
-  const frame=t=>{
-   const dt=Math.min(32,t-last);last=t;
-   const move=speed*dt;travel+=Math.abs(move);
-   setPosition(position+move);
-   speed*=Math.pow(.963,dt/16);
-   if(Math.abs(speed)>.00032&&travel<14){raf=requestAnimationFrame(frame)}
-   else{raf=0;settle()}
-  };
-  raf=requestAnimationFrame(frame);
- }
- // Tocar un recuadro: navegación directa, con giro corto.
- nav.addEventListener('click',e=>{
-  const btn=e.target.closest('[data-tab]');
-  if(!btn)return;
-  e.preventDefault();e.stopPropagation();
-  if(performance.now()<suppressClickUntil)return;
-  stop();
-  const i=ids.indexOf(btn.dataset.tab);
-  if(i<0)return;
-  let delta=i-wrap(Math.round(position));
-  if(delta>2)delta-=5;if(delta< -2)delta+=5;
-  const target=Math.round(position)+delta;
-  if(reduced){setPosition(target);return}
-  const from=position,t0=performance.now(),duration=230;
-  const frame=t=>{
-   const p=Math.min(1,(t-t0)/duration);
-   setPosition(from+(target-from)*(1-Math.pow(1-p,3)));
-   if(p<1)raf=requestAnimationFrame(frame);else{raf=0;setPosition(target)}
-  };
-  raf=requestAnimationFrame(frame);
- },true);
- nav.style.touchAction='pan-y';
- nav.addEventListener('touchstart',e=>{
-  if(e.touches.length!==1)return;
-  stop();
-  const t=e.touches[0];
-  drag={x:t.clientX,y:t.clientY,startX:t.clientX,startY:t.clientY,time:performance.now(),lastTime:performance.now(),velocity:0,moved:false,vertical:false};
- },{passive:true});
- nav.addEventListener('touchmove',e=>{
-  if(!drag||e.touches.length!==1)return;
-  const t=e.touches[0],dx=t.clientX-drag.x,dy=t.clientY-drag.y,now=performance.now();
-  if(!drag.moved&&!drag.vertical){
-   if(Math.abs(t.clientY-drag.startY)>Math.abs(t.clientX-drag.startX)*1.2){drag.vertical=true;return}
-   if(Math.abs(t.clientX-drag.startX)>7)drag.moved=true;
-  }
-  if(drag.vertical||!drag.moved)return;
-  if(e.cancelable)e.preventDefault();
-  const step=Math.max(45,(nav.clientWidth-12)/5);
-  const delta=-dx/step,dt=Math.max(1,now-drag.lastTime);
-  const instant=delta/dt;
-  drag.velocity=drag.velocity*.55+instant*.45;
-  setPosition(position+delta);
-  drag.x=t.clientX;drag.y=t.clientY;drag.lastTime=now;
- },{passive:false});
- nav.addEventListener('touchend',e=>{
-  if(!drag)return;
-  const d=drag;drag=null;
-  if(d.moved&&!d.vertical){
-   suppressClickUntil=performance.now()+350;
-   const elapsed=Math.max(1,performance.now()-d.time);
-   const overall=-(e.changedTouches[0].clientX-d.startX)/Math.max(45,(nav.clientWidth-12)/5)/elapsed;
-   const v=Math.abs(d.velocity)>.002?d.velocity:overall;
-   if(Math.abs(v)>.0015)spin(v);else settle();
-  }
- },{passive:true});
- nav.addEventListener('touchcancel',()=>{drag=null;settle()},{passive:true});
- const observer=new MutationObserver(()=>{
-  if(internal||drag||raf)return;
-  const i=ids.indexOf(active());
-  if(i>=0&&i!==wrap(Math.round(position))){position=i;paint()}
+ const paint=()=>nav.querySelectorAll('[data-tab]').forEach(b=>{
+  const on=b.dataset.tab===active();b.classList.toggle('selected',on);
+  b.setAttribute('aria-current',on?'page':'false');
+  b.style.transform='';b.style.zIndex='';
  });
+ nav.addEventListener('click',e=>{
+  const b=e.target.closest('[data-tab]');if(!b)return;
+  e.preventDefault();e.stopPropagation();
+  const id=b.dataset.tab;
+  const original=document.querySelector('#bottomNavigation [data-tab="'+id+'"]')||
+    Array.from(document.querySelectorAll('[data-tab="'+id+'"]')).find(x=>!x.closest('#costenoTabletNav'));
+  if(original)original.click();
+  paint();
+ },true);
+ const observer=new MutationObserver(paint);
  ids.forEach(id=>{const el=document.getElementById(id);if(el)observer.observe(el,{attributes:true,attributeFilter:['class']})});
- window.addEventListener('resize',paint);
  paint();
 })();
 </script>
@@ -1557,7 +1450,13 @@ body[data-costeno-icon-style="color"] .ec-global-icon{filter:drop-shadow(0 1px 2
    const usedImages={};
    Object.keys(uniqueSettings).forEach(k=>{const v=icons[k];if(typeof v==='string'&&v.startsWith('data:image/'))(usedImages[v]||(usedImages[v]=[])).push(k)});
    document.querySelectorAll('.settings-tile .tile-icon').forEach(el=>{
-    if(!el.dataset.originalEmoji)el.dataset.originalEmoji=el.textContent.trim();
+    if(!el.dataset.originalEmoji){
+     const original=el.textContent.trim();
+     const tile=el.closest('.settings-tile');
+     const label=tile?tile.textContent.trim().toLowerCase():'';
+     const fallback={'personalizar':'🎨','impresora':'🖨️','logotipos':'🖼️','tickets':'🧾','productos':'🏷️','whatsapp':'📲','fiscal':'🏛️','sonidos':'🔊','respaldos':'💾','animación':'🎩','animacion':'🎩'};
+     el.dataset.originalEmoji=semantic[original]?original:(Object.keys(fallback).find(k=>label.includes(k))?fallback[Object.keys(fallback).find(k=>label.includes(k))]:original||'⚙️');
+    }
     const v=icons[semantic[el.dataset.originalEmoji]];
     const key=semantic[el.dataset.originalEmoji];
     const repeated=typeof v==='string'&&v.startsWith('data:image/')&&(usedImages[v]||[]).length>1;
@@ -1573,7 +1472,7 @@ body[data-costeno-icon-style="color"] .ec-global-icon{filter:drop-shadow(0 1px 2
  const node=v=>{if(v.startsWith('data:image/')){const i=document.createElement('img');i.src=v;i.className='ec-pack-icon';i.alt='';return i}const i=document.createElement('span');i.className='ec-pack-icon-text';i.textContent=v;return i};
  function renderCashActions(){
   const defs=[
-   ['emergencyUndo','Borrar último cobro','<path d="M18 28h28M24 28v29a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4V28M27 23h10M30 35v17M36 35v17" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/><path d="M11 47a23 23 0 0 1 7-24M11 47l-1-11M11 47l11-2" fill="none" stroke="#ffcf6b" stroke-width="4" stroke-linecap="round"/>'],
+   ['emergencyUndo','Borrar último cobro','<path d="M20 21h24M25 21v29a5 5 0 0 0 5 5h4a5 5 0 0 0 5-5V21M28 16h8M30 29v17M35 29v17" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>'],
    ['printTransferQr','Imprimir QR transferencia','<rect x="8" y="8" width="21" height="21" rx="2" fill="none" stroke="#fff" stroke-width="4"/><rect x="35" y="8" width="21" height="21" rx="2" fill="none" stroke="#fff" stroke-width="4"/><rect x="8" y="35" width="21" height="21" rx="2" fill="none" stroke="#fff" stroke-width="4"/><path d="M14 14h9v9h-9zM41 14h9v9h-9zM14 41h9v9h-9zM35 36h7v7h-7zM47 35h8v7h-8zM35 49h8v8h-8zM48 48h8v8h-8z" fill="#fff"/>']
   ];
   defs.forEach(([id,label,paths])=>{
