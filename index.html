@@ -1444,6 +1444,11 @@ body[data-costeno-font-style="bold"] main,body[data-costeno-font-style="bold"] b
 <style>
 .ec-pack-icon{width:1.4em;height:1.4em;object-fit:contain;vertical-align:middle;margin-right:5px}
 #costenoTabletNav .ec-pack-icon{width:29px;height:29px;margin:0}
+/* El icono del paquete sustituye al SVG de la navegación; nunca se superponen. */
+#costenoTabletNav button > svg[hidden],#costenoTabletNav button:has(> .ec-pack-icon) > svg,#costenoTabletNav button:has(> .ec-pack-icon-text) > svg{display:none!important}
+#costenoTabletNav button > .ec-pack-icon{width:40px!important;height:40px!important;max-width:85%;object-fit:contain!important;flex:0 0 40px}
+#costenoTabletNav button > .ec-pack-icon-text{font-size:32px;line-height:40px}
+
 body[data-costeno-icon-style="line"] .ec-pack-icon,body[data-costeno-icon-style="line"] #costenoTabletNav svg{filter:grayscale(1) brightness(1.6)!important}
 body[data-costeno-icon-style="classic"] .ec-pack-icon,body[data-costeno-icon-style="classic"] #costenoTabletNav svg{filter:sepia(.9)!important}
 #costenoPackManager{margin-top:14px}
@@ -1567,8 +1572,13 @@ body[data-costeno-icon-style="color"] .ec-global-icon{filter:drop-shadow(0 1px 2
   const p=active();
   document.querySelectorAll('#costenoTabletNav [data-tab]').forEach(b=>{
    const old=b.querySelector('.ec-pack-icon,.ec-pack-icon-text');if(old)old.remove();
-   const v=p.ui&&p.ui[b.dataset.tab],svg=b.querySelector('svg');if(svg)svg.style.display=valid(v)?'none':'';
-   if(valid(v))b.insertBefore(node(v),b.firstChild);
+   const v=p.ui&&p.ui[b.dataset.tab],hasCustom=valid(v);
+   // El SVG original se conserva para restaurar el tema, pero nunca debe verse junto al icono 3D.
+   b.querySelectorAll(':scope > svg').forEach(svg=>{
+    if(hasCustom){svg.setAttribute('hidden','');svg.style.setProperty('display','none','important')}
+    else{svg.removeAttribute('hidden');svg.style.removeProperty('display')}
+   });
+   if(hasCustom)b.insertBefore(node(v),b.firstChild);
   });
   const select=document.getElementById('costenoActivePack');
   if(select){select.replaceChildren();all().forEach(x=>{const o=document.createElement('option');o.value=x.id;o.textContent=x.name;select.appendChild(o)});select.value=p.id}
