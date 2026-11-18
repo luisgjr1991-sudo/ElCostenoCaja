@@ -280,6 +280,19 @@ function openProductIconPicker(productId){
  const choose=icon=>{if(target){target.icon=icon;save('ec_products',products);render()}else{pendingNewProductIcon=icon;$('newProductIcon').textContent=(typeof icon==='string'&&icon.startsWith('data:image/'))?'🖼️ Imagen elegida':(icon||'◻️')+' Elegir icono'}close()};
  const cats=backdrop.querySelector('.icon-picker-cats'),grid=backdrop.querySelector('.icon-picker-grid');
  if(window.ecRefreshProductIconLibrary)window.ecRefreshProductIconLibrary();
+ // Reconstruir los paquetes importados directamente al abrir el selector.
+ // No depender del paquete visual activo ni de una actualización previa.
+ try{
+  const imported=JSON.parse(localStorage.getItem('ec_icon_packs')||'[]');
+  Object.keys(productIconCategories).filter(k=>k.startsWith('Paquete: ')).forEach(k=>delete productIconCategories[k]);
+  const builtIn={Emojis:{Taco:'🌮',Bebida:'🥤'}};
+  Object.entries(builtIn).forEach(([name,products])=>{productIconCategories['Paquete: '+name]=Object.values(products)});
+  if(Array.isArray(imported))imported.forEach(pack=>{
+   if(!pack||typeof pack.name!=='string'||!pack.products||typeof pack.products!=='object')return;
+   const images=Object.values(pack.products).filter(v=>typeof v==='string'&&/^data:image\/(png|jpeg|webp);base64,/.test(v));
+   if(images.length)productIconCategories['Paquete: '+pack.name]=images;
+  });
+ }catch(e){console.warn('No se pudieron actualizar los paquetes de imágenes',e)}
  const selected=target?target.icon:pendingNewProductIcon;
  const show=category=>{grid.innerHTML='';productIconCategories[category].forEach(icon=>{const b=document.createElement('button');b.type='button';b.innerHTML=productIconMarkup(icon);b.setAttribute('aria-label','Elegir '+icon);if(icon===selected)b.classList.add('selected');b.onclick=()=>choose(icon);grid.appendChild(b)})};
  Object.keys(productIconCategories).forEach((category,i)=>{const b=document.createElement('button');b.type='button';b.textContent=category;b.onclick=()=>show(category);cats.appendChild(b);if(i===0)show(category)});
