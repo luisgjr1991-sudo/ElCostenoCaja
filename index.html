@@ -1556,6 +1556,7 @@ body[data-costeno-icon-style="color"] .ec-global-icon{filter:drop-shadow(0 1px 2
   importButton.onclick=()=>importFile.click();
   importFile.onchange=async()=>{
    const file=importFile.files&&importFile.files[0];if(!file)return;
+   if(/^image\/(png|jpeg|webp)$/.test(file.type))return;
    const status=document.getElementById('productImagePackStatus');
    try{
     const name=await window.costenoImportProductPack(file);
