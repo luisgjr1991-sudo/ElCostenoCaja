@@ -15,3 +15,12 @@ Esta rama preserva el código de la compilación correcta antes de realizar nuev
 - Homogeneizar tamaño de iconos de Ajustes.
 - Conservar biblioteca global de iconos PNG transparentes y su selector por producto.
 - Verificar en Android antes de distribuir una nueva APK.
+
+## Versión principal aprobada por el usuario (2026-11-17)
+- Compilación confirmada: https://github.com/luisgjr1991-sudo/ElCostenoCaja/actions/runs/44223112318
+- APK: https://github.com/luisgjr1991-sudo/ElCostenoCaja/releases/download/costeno-apk-44223112318-1/ElCostenoCaja.apk
+- Tamaño APK: 21469206 bytes
+- Commit de compilación: f77559d8381269c6a87d587cfc238e342d6282e3
+- Rama de trabajo obligatoria: respaldo-apk-correcta-44152383621
+- El usuario probó y confirmó que esta es la correcta. Todas las siguientes modificaciones deben partir de esta rama, no de main ni de versiones anteriores.
+- Pendiente administrativo: eliminar versiones antiguas de Releases/Actions cuando haya herramienta con permisos de borrado; no borrar historial Git ni rama de respaldo.
