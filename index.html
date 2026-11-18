@@ -311,7 +311,7 @@ function openProductIconPicker(productId){
     if(!entries.length){const note=document.createElement('p');note.textContent='Este paquete no contiene imágenes. Vuelve a importarlo.';grid.appendChild(note);return}
     entries.forEach(([name,value])=>{
      const btn=document.createElement('button');btn.type='button';btn.title=name;btn.setAttribute('aria-label','Elegir '+name);
-     if(typeof value==='string'&&/^data:image\\/(png|jpeg|webp);base64,/.test(value)){
+     if(typeof value==='string'&&value.startsWith('data:image/')&&value.includes(';base64,')){
       const img=document.createElement('img');img.src=value;img.alt=name;img.style.cssText='width:100%;height:100%;max-height:72px;object-fit:contain';btn.appendChild(img);
       btn.onclick=()=>choose(value);
      }else{
