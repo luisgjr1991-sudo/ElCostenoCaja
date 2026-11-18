@@ -1373,6 +1373,7 @@ body[data-costeno-font-style="bold"] main,body[data-costeno-font-style="bold"] b
  function apply(){
   options.forEach(([id,type,label])=>{
    const btn=document.getElementById(id);if(!btn)return;
+   if(id==='emergencyUndo')return; // Papelera administrada por una única representación SVG.
    const style=read('ec_gallery_'+type,'Tableta');
    btn.replaceChildren();
    btn.insertAdjacentHTML('afterbegin',svg(type,variants[type][style]?style:'Tableta','costeno-action-art'));
@@ -1509,7 +1510,7 @@ body[data-costeno-icon-style="color"] .ec-global-icon{filter:drop-shadow(0 1px 2
  const node=v=>{if(v.startsWith('data:image/')){const i=document.createElement('img');i.src=v;i.className='ec-pack-icon';i.alt='';return i}const i=document.createElement('span');i.className='ec-pack-icon-text';i.textContent=v;return i};
  function renderCashActions(){
   const defs=[
-   ['emergencyUndo','Borrar último cobro','<path d="M18 28h28M24 28v29a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4V28M27 23h10M30 35v17M36 35v17" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/><path d="M11 47a23 23 0 0 1 7-24M11 47l-1-11M11 47l11-2" fill="none" stroke="#ffcf6b" stroke-width="4" stroke-linecap="round"/>'],
+   ['emergencyUndo','Borrar último cobro','<path d="M20 19h24 M27 19v-4h10v4 M24 24v25a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4V24 M30 30v16 M35 30v16" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>'],,
    ['printTransferQr','Imprimir QR transferencia','<rect x="8" y="8" width="21" height="21" rx="2" fill="none" stroke="#fff" stroke-width="4"/><rect x="35" y="8" width="21" height="21" rx="2" fill="none" stroke="#fff" stroke-width="4"/><rect x="8" y="35" width="21" height="21" rx="2" fill="none" stroke="#fff" stroke-width="4"/><path d="M14 14h9v9h-9zM41 14h9v9h-9zM14 41h9v9h-9zM35 36h7v7h-7zM47 35h8v7h-8zM35 49h8v8h-8zM48 48h8v8h-8z" fill="#fff"/>']
   ];
   defs.forEach(([id,label,paths])=>{
