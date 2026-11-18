@@ -1,5 +1,7 @@
 name: APK PRINCIPAL El Costeño (android)
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 jobs:
   build:
