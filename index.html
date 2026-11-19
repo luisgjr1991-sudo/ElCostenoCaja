@@ -170,12 +170,23 @@ body.custom-background::before{content:"";position:fixed;top:0;right:0;bottom:0;
 #settingsTiles .settings-tile span:last-child{font-size:14px;text-align:center;font-weight:700;line-height:1.3}
 #settingsTiles .settings-tile:active{background:rgba(255,255,255,.08)!important;border-radius:12px!important}
 
-/* Pulsación física con destello radial localizado */
-button:not(:disabled){position:relative;isolation:isolate;overflow:hidden;transition:transform .12s ease,filter .12s ease,box-shadow .12s ease;touch-action:manipulation}
-button.costeno-pressed:not(:disabled){transform:scale(.965) translateY(2px);filter:brightness(.87);box-shadow:inset 0 3px 9px rgba(0,0,0,.25)!important}
-button .costeno-ripple{position:absolute;left:var(--tap-x);top:var(--tap-y);width:16px;height:16px;border-radius:50%;pointer-events:none;z-index:5;background:radial-gradient(circle,rgba(255,255,255,.95) 0%,rgba(255,255,255,.62) 23%,rgba(255,255,255,.23) 58%,transparent 72%);transform:translate(-50%,-50%) scale(.2);animation:costeno-ripple .43s ease-out forwards}
-@keyframes costeno-ripple{0%{opacity:.95;transform:translate(-50%,-50%) scale(.2)}100%{opacity:0;transform:translate(-50%,-50%) scale(15)}}
-@media(prefers-reduced-motion:reduce){button:not(:disabled){transition:none}button .costeno-ripple{animation-duration:.08s}}
+/* Respuesta tactil por area: movimiento suave y destello localizado */
+button:not(:disabled){position:relative;isolation:isolate;overflow:hidden;touch-action:manipulation;--tap-glow:rgba(178,207,228,.50);--tap-bright:#b8d7eb;--tap-ring:rgba(148,191,219,.3);transition:transform .19s cubic-bezier(.2,.8,.25,1),filter .19s ease,box-shadow .23s ease}
+button.costeno-pressed:not(:disabled){transform:translateY(1px) scale(.974);filter:brightness(1.08);box-shadow:0 0 0 2px var(--tap-ring),0 0 15px var(--tap-glow),inset 0 2px 5px #0003!important}
+button .costeno-ripple{position:absolute;left:var(--tap-x);top:var(--tap-y);width:22px;height:22px;border-radius:50%;pointer-events:none;z-index:8;background:radial-gradient(circle,var(--tap-bright) 0%,var(--tap-glow) 28%,transparent 72%);transform:translate(-50%,-50%) scale(.15);animation:costeno-ripple .58s cubic-bezier(.12,.6,.2,1) forwards;mix-blend-mode:screen}
+button .costeno-spark{position:absolute;left:var(--tap-x);top:var(--tap-y);width:12px;height:12px;pointer-events:none;z-index:9;background:radial-gradient(circle,#fff 0%,var(--tap-bright) 35%,transparent 70%);transform:translate(-50%,-50%) scale(.4);animation:costeno-spark .56s ease-out forwards}
+@keyframes costeno-ripple{0%{opacity:.9;transform:translate(-50%,-50%) scale(.2)}65%{opacity:.7}100%{opacity:0;transform:translate(-50%,-50%) scale(20)}}
+@keyframes costeno-spark{0%{opacity:1;transform:translate(-50%,-50%) scale(.4)}100%{opacity:0;transform:translate(calc(-50% + var(--spark-x)),calc(-50% + var(--spark-y))) scale(.15)}}
+#caja #products .product,#caja #addCustomTacos,#caja #cart [data-add],#caja #cart [data-minus]{--tap-glow:rgba(255,169,34,.8);--tap-bright:#fff2a6;--tap-ring:#ffb53288}
+#caja #products .product{border:1px solid #d89c4c88;box-shadow:0 3px 12px #a86b2433}
+#caja #products .product.costeno-pressed{filter:brightness(1.23) saturate(1.2)}
+#caja #charge,#caja #chargePrint,#caja #chargeSendAccountant,#caja [id^="charge"],#caja #payCash,#caja #payCard,#caja #cardDebit,#caja #cardCredit{--tap-glow:rgba(63,232,131,.7);--tap-bright:#c0ffd0;--tap-ring:#42e78d88}
+#pedidos #orderAddPlate,#pedidos .order-plate-chip{--tap-glow:rgba(29,218,225,.8);--tap-bright:#c0ffff;--tap-ring:#2cdeeb88;background:#147e87;color:white}
+#pedidos #orderTapFlavors .order-modal-stew>button:first-child,#pedidos #orderStews button{--tap-glow:rgba(255,150,28,.85);--tap-bright:#fff0a3;--tap-ring:#ff9b2688;background:#9b521b;color:white}
+#pedidos #orderTapFlavors .order-modal-minus{--tap-glow:rgba(255,116,116,.6);--tap-bright:#ffd5c2}
+#pedidos #orderPlateConfirm,#pedidos #orderPrint{--tap-glow:rgba(79,245,125,.8);--tap-bright:#d4ffb0;--tap-ring:#4cf37a88;background:#2e8442;color:white}
+#pedidos #orderPlateCancel{--tap-glow:rgba(242,112,113,.6);--tap-bright:#ffd2d2}
+@media(prefers-reduced-motion:reduce){button:not(:disabled){transition:none}button .costeno-ripple,button .costeno-spark{animation-duration:.08s}}
 
 /* Selector de modo de pedido y armado rápido por pulsaciones */
 .order-mode-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap}.order-mode-heading h2{margin:0 0 12px}.order-mode-switch{display:flex;gap:6px;margin-left:auto}.order-mode-switch button{display:flex;align-items:center;gap:5px;padding:8px 10px;font-size:12px;border:1px solid rgba(255,255,255,.25);background:rgba(20,20,20,.35);color:#fff}.order-mode-light{width:11px;height:11px;border-radius:50%;background:#777;border:1px solid #bbb;display:inline-block}.order-mode-switch button.active .order-mode-light{background:#3bea75;box-shadow:0 0 8px #31e76a}.order-mode-switch button.active{outline:1px solid #3bea75}.order-tap-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.order-tap-plates{display:flex;gap:7px;overflow-x:auto;padding:6px 0}.order-tap-plates button.active{outline:3px solid #3bea75}.order-tap-flavors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:10px 0}.order-tap-flavors button{min-height:65px;font-size:16px}.order-tap-flavors small{display:block;margin-top:4px;opacity:.85}
@@ -1624,11 +1635,19 @@ body[data-costeno-icon-style="color"] .ec-global-icon{filter:drop-shadow(0 1px 2
 })();
 </script>
 
-<script>/* Efecto táctil delegado, compatible con botones dinámicos */
-(function(){function release(b){if(b)b.classList.remove('costeno-pressed')}
-document.addEventListener('pointerdown',function(e){const b=e.target.closest&&e.target.closest('button');if(!b||b.disabled)return;const r=b.getBoundingClientRect();b.classList.add('costeno-pressed');const ripple=document.createElement('span');ripple.className='costeno-ripple';ripple.style.setProperty('--tap-x',(e.clientX-r.left)+'px');ripple.style.setProperty('--tap-y',(e.clientY-r.top)+'px');b.appendChild(ripple);ripple.addEventListener('animationend',()=>ripple.remove(),{once:true});},{capture:true,passive:true});
-for(const type of ['pointerup','pointercancel'])document.addEventListener(type,function(e){release(e.target.closest&&e.target.closest('button'));},true);
-document.addEventListener('pointerout',function(e){const b=e.target.closest&&e.target.closest('button');if(b&&!b.contains(e.relatedTarget))release(b)},true);
+<script>/* Efectos táctiles diferenciados para Caja, Pedidos y navegación */
+(function(){
+let activeButton=null;
+function release(){if(activeButton){activeButton.classList.remove('costeno-pressed');activeButton=null}}
+document.addEventListener('pointerdown',function(e){
+const b=e.target.closest&&e.target.closest('button');if(!b||b.disabled)return;
+release();activeButton=b;b.classList.add('costeno-pressed');
+const r=b.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+const vivid=!!b.closest('#products,#orderTapFlavors,#orderStews')||b.matches('#orderAddPlate,#orderPlateConfirm,#orderPrint,#addCustomTacos,[id^="charge"]')||!!b.closest('#cart');
+const ripple=document.createElement('span');ripple.className='costeno-ripple';ripple.style.setProperty('--tap-x',x+'px');ripple.style.setProperty('--tap-y',y+'px');b.appendChild(ripple);ripple.addEventListener('animationend',()=>ripple.remove(),{once:true});
+if(vivid){for(let i=0;i<5;i++){const spark=document.createElement('span');spark.className='costeno-spark';spark.style.setProperty('--tap-x',x+'px');spark.style.setProperty('--tap-y',y+'px');const angle=i*Math.PI*2/5;spark.style.setProperty('--spark-x',Math.round(Math.cos(angle)*34)+'px');spark.style.setProperty('--spark-y',Math.round(Math.sin(angle)*34)+'px');b.appendChild(spark);spark.addEventListener('animationend',()=>spark.remove(),{once:true})}}
+},{capture:true,passive:true});
+document.addEventListener('pointerup',release,true);document.addEventListener('pointercancel',release,true);window.addEventListener('blur',release);
 })();
 </script>
 </body></html>
