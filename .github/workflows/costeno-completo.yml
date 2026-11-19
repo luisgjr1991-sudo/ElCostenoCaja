@@ -1,7 +1,7 @@
 name: El Costeno Caja APK completa
 on:
   push:
-    branches: [main]
+    branches: [main, mejora-destello-botones-20261119]
   workflow_dispatch:
 permissions:
   contents: write
