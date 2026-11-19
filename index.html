@@ -1651,7 +1651,15 @@ body[data-costeno-icon-style="color"] .ec-global-icon{filter:drop-shadow(0 1px 2
 })();
 </script>
 
-<script>/* Animación global: ilumina el botón completo, nunca el punto de contacto. */
+<style id="costenoTouchFlashV2">
+/* Brillo visible y uniforme en todo el botón; sin foco rectangular del sistema. */
+button{-webkit-tap-highlight-color:transparent!important}
+button.costeno-pressed:not(:disabled){isolation:isolate!important;position:relative!important;overflow:hidden!important;filter:brightness(1.32) saturate(1.24)!important;box-shadow:0 0 20px 4px var(--touch-light,rgba(180,218,240,.65)),inset 0 0 18px 2px var(--touch-light,rgba(180,218,240,.65))!important}
+button.costeno-pressed:not(:disabled)::after{content:""!important;display:block!important;position:absolute!important;inset:0!important;z-index:40!important;border-radius:inherit!important;pointer-events:none!important;background:linear-gradient(115deg,transparent 0%,rgba(255,255,255,.16) 22%,rgba(255,255,255,.58) 48%,rgba(255,255,255,.18) 70%,transparent 100%)!important;mix-blend-mode:screen!important;animation:costeno-button-glint .58s ease-out both!important}
+@keyframes costeno-button-glint{0%{opacity:0;transform:translateX(-50%)}18%{opacity:1}65%{opacity:.94}100%{opacity:0;transform:translateX(50%)}}
+#costenoTabletNav button.costeno-pressed:not(:disabled){filter:brightness(1.36)!important}
+@media(prefers-reduced-motion:reduce){button.costeno-pressed:not(:disabled)::after{animation:none!important;opacity:.3!important}}
+</style><script>/* Animación global: ilumina el botón completo, nunca el punto de contacto. */
 (function(){
 const timers=new WeakMap();
 function pulse(button){
@@ -1660,7 +1668,7 @@ function pulse(button){
  button.classList.remove('costeno-pressed');
  void button.offsetWidth;
  button.classList.add('costeno-pressed');
- timers.set(button,setTimeout(()=>{button.classList.remove('costeno-pressed');timers.delete(button)},340));
+ timers.set(button,setTimeout(()=>{button.classList.remove('costeno-pressed');timers.delete(button)},620));
 }
 document.addEventListener('pointerdown',event=>{const button=event.target.closest&&event.target.closest('button');pulse(button)},{capture:true,passive:true});
 document.addEventListener('keydown',event=>{if(event.key!=='Enter'&&event.key!==' ')return;const button=event.target.closest&&event.target.closest('button');pulse(button)},true);
